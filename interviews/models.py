@@ -65,6 +65,9 @@ class Answer(models.Model):
 
     filler_word_count = models.IntegerField(default=0)
 
+    feedback = models.TextField(blank=True, null=True)
+    vocabulary_score = models.FloatField(default=0)
+    technical_score = models.FloatField(default=0)
     response_time_seconds = models.FloatField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)

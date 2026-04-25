@@ -4,7 +4,7 @@ from .models import InterviewSession, Question, Answer
 from .serializers import InterviewSessionSerializer, QuestionSerializer, AnswerSerializer
 import random
 from django.contrib.auth.models import User
-
+from .evaluator import evaluate_answer
 
 @api_view(['POST'])
 def start_interview(request):
@@ -67,9 +67,20 @@ def submit_answer(request):
 
     question = Question.objects.get(id=question_id)
 
+    evaluation = evaluate_answer(
+        question.question_text,
+        answer_text
+    )
+
     answer = Answer.objects.create(
         question=question,
-        answer_text=answer_text
+        answer_text=answer_text,
+        semantic_score=evaluation['semantic_score'],
+        confidence_score=evaluation['confidence_score'],
+        filler_word_count=evaluation['filler_count'],
+        vocabulary_score=evaluation['vocabulary_score'],
+        technical_score=evaluation['technical_score'],
+        feedback=evaluation['feedback']
     )
 
     serializer = AnswerSerializer(answer)
