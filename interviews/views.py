@@ -53,6 +53,8 @@ def generate_question(request):
         session=session,
         question_text=selected_question
     )
+    session.current_question_number += 1
+    session.save()
 
     serializer = QuestionSerializer(question)
 
@@ -82,6 +84,11 @@ def submit_answer(request):
         technical_score=evaluation['technical_score'],
         feedback=evaluation['feedback']
     )
+    
+    session = question.session
+    if session.current_question_number >= session.total_questions:
+        session.completed = True
+        session.save()
 
     serializer = AnswerSerializer(answer)
 
