@@ -5,12 +5,14 @@ from django.contrib.auth.models import User
 from .models import Resume
 from .serializers import ResumeSerializer
 from .parser import extract_text_from_pdf
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def upload_resume(request):
 
-    user = User.objects.first()
+    user = request.user
 
     uploaded_file = request.FILES.get('file')
 

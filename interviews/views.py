@@ -9,7 +9,7 @@ from .serializers import (
     QuestionSerializer,
     AnswerSerializer
 )
-
+import os
 from .evaluator import evaluate_answer
 from ai_engine.llm_service import generate_question as generate_ai_question
 from ai_engine.answer_evaluator import evaluate_answer_ai
@@ -18,13 +18,15 @@ from resumes.models import Resume
 from ai_engine.audio_transcriber import transcribe_audio
 from ai_engine.context_builder import build_interview_context
 
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def start_interview(request):
 
-    user = User.objects.first()
+    user = request.user
 
     domain = request.data.get('domain')
     resume_id = request.data.get('resume_id')
@@ -33,7 +35,10 @@ def start_interview(request):
 
     if resume_id:
         try:
-            resume = Resume.objects.get(id=resume_id)
+            resume = Resume.objects.get(
+                id=resume_id,
+                user=request.user
+            ) 
         except Resume.DoesNotExist:
             return Response({
                 "error": "Resume not found"
@@ -51,13 +56,16 @@ def start_interview(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def generate_question(request):
 
     session_id = request.data.get('session_id')
 
     try:
-        session = InterviewSession.objects.get(id=session_id)
-
+        session = InterviewSession.objects.get(
+            id=session_id,
+            user=request.user
+        )
     except InterviewSession.DoesNotExist:
 
         return Response({
@@ -92,14 +100,17 @@ def generate_question(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def submit_answer(request):
 
     question_id = request.data.get('question_id')
     answer_text = request.data.get('answer_text')
 
     try:
-        question = Question.objects.get(id=question_id)
-
+        question = Question.objects.get(
+            id=question_id,
+            session__user=request.user
+        )
     except Question.DoesNotExist:
 
         return Response({
@@ -149,11 +160,14 @@ def submit_answer(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def interview_summary(request, session_id):
 
     try:
-        session = InterviewSession.objects.get(id=session_id)
-
+        session = InterviewSession.objects.get(
+            id=session_id,
+            user=request.user
+        )
     except InterviewSession.DoesNotExist:
 
         return Response({
@@ -193,6 +207,7 @@ def interview_summary(request, session_id):
     })
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def submit_audio_answer(request):
 
     question_id = request.data.get('question_id')
@@ -205,10 +220,18 @@ def submit_audio_answer(request):
             "error": "No audio uploaded"
         }, status=400)
 
-    question = Question.objects.get(id=question_id)
+    question = Question.objects.get(
+        id=question_id,
+        session__user=request.user
+    )
+    temp_dir = "media/temp"
 
-    temp_path = f"media/temp/{audio_file.name}"
+    os.makedirs(temp_dir, exist_ok=True)
 
+    temp_path = os.path.join(
+        temp_dir,
+        audio_file.name
+    )
     with open(temp_path, 'wb+') as destination:
 
         for chunk in audio_file.chunks():
@@ -226,15 +249,17 @@ def submit_audio_answer(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def interview_step(request):
 
     question_id = request.data.get('question_id')
     answer_text = request.data.get('answer_text')
 
     try:
-
-        question = Question.objects.get(id=question_id)
-
+        question = Question.objects.get(
+            id=question_id,
+            session__user=request.user
+        )
     except Question.DoesNotExist:
 
         return Response({
