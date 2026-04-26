@@ -1,21 +1,25 @@
 import os
+import json
 import google.generativeai as genai
 from dotenv import load_dotenv
-import json
 
 load_dotenv()
 
+# Configure Gemini
 genai.configure(
     api_key=os.getenv("GEMINI_API_KEY")
 )
 
+# Gemini model
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def evaluate_answer_ai(question, answer):
 
     prompt = f"""
-    Evaluate this interview answer.
+    You are a professional interview evaluator.
+
+    Evaluate the candidate's answer.
 
     Question:
     {question}
@@ -23,7 +27,11 @@ def evaluate_answer_ai(question, answer):
     Answer:
     {answer}
 
-    Return JSON only.
+    Score the answer from 1–10.
+
+    Return ONLY valid JSON.
+
+    Required JSON format:
 
     {{
         "semantic_score": number,
@@ -33,8 +41,36 @@ def evaluate_answer_ai(question, answer):
     }}
     """
 
-    response = model.generate_content(prompt)
+    try:
 
-    cleaned = response.text.replace("```json", "").replace("```", "")
+        response = model.generate_content(prompt)
 
-    return json.loads(cleaned)
+        raw_text = response.text.strip()
+
+        cleaned = (
+            raw_text
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
+
+        parsed = json.loads(cleaned)
+
+        return {
+            "semantic_score": parsed.get("semantic_score", 5),
+            "technical_score": parsed.get("technical_score", 5),
+            "confidence_score": parsed.get("confidence_score", 5),
+            "feedback": parsed.get(
+                "feedback",
+                "Evaluation completed."
+            )
+        }
+
+    except Exception:
+
+        return {
+            "semantic_score": 5,
+            "technical_score": 5,
+            "confidence_score": 5,
+            "feedback": "AI evaluation unavailable."
+        }
