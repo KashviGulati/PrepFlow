@@ -15,6 +15,11 @@ from ai_engine.llm_service import generate_question as generate_ai_question
 from ai_engine.answer_evaluator import evaluate_answer_ai
 from resumes.models import Resume
 
+from ai_engine.audio_transcriber import transcribe_audio
+from ai_engine.context_builder import build_interview_context
+
+
+
 
 @api_view(['POST'])
 def start_interview(request):
@@ -64,9 +69,12 @@ def generate_question(request):
     if session.resume:
         resume_text = session.resume.extracted_text
 
+    history = build_interview_context(session)
+
     selected_question = generate_ai_question(
         session.domain,
-        resume_text
+        resume_text,
+        history
     )
 
     question = Question.objects.create(
@@ -182,4 +190,131 @@ def interview_summary(request, session_id):
         "average_confidence_score": avg_confidence,
         "average_vocabulary_score": avg_vocab,
         "average_technical_score": avg_technical
+    })
+
+@api_view(['POST'])
+def submit_audio_answer(request):
+
+    question_id = request.data.get('question_id')
+
+    audio_file = request.FILES.get('audio')
+
+    if not audio_file:
+
+        return Response({
+            "error": "No audio uploaded"
+        }, status=400)
+
+    question = Question.objects.get(id=question_id)
+
+    temp_path = f"media/temp/{audio_file.name}"
+
+    with open(temp_path, 'wb+') as destination:
+
+        for chunk in audio_file.chunks():
+
+            destination.write(chunk)
+
+    transcribed_text = transcribe_audio(temp_path)
+
+    request._full_data = {
+        "question_id": question_id,
+        "answer_text": transcribed_text
+    }
+
+    return submit_answer(request)
+
+
+@api_view(['POST'])
+def interview_step(request):
+
+    question_id = request.data.get('question_id')
+    answer_text = request.data.get('answer_text')
+
+    try:
+
+        question = Question.objects.get(id=question_id)
+
+    except Question.DoesNotExist:
+
+        return Response({
+            "error": "Question not found"
+        }, status=404)
+
+    session = question.session
+
+    # ---- Evaluate Answer ----
+
+    try:
+
+        evaluation = evaluate_answer_ai(
+            question.question_text,
+            answer_text
+        )
+
+        filler_count = 0
+        vocabulary_score = 0
+
+    except:
+
+        evaluation = evaluate_answer(
+            question.question_text,
+            answer_text
+        )
+
+        filler_count = evaluation.get('filler_count', 0)
+        vocabulary_score = evaluation.get('vocabulary_score', 0)
+
+    answer = Answer.objects.create(
+        question=question,
+        answer_text=answer_text,
+        semantic_score=evaluation.get('semantic_score', 0),
+        confidence_score=evaluation.get('confidence_score', 0),
+        filler_word_count=filler_count,
+        vocabulary_score=vocabulary_score,
+        technical_score=evaluation.get('technical_score', 0),
+        feedback=evaluation.get('feedback', '')
+    )
+
+    # ---- Interview Complete? ----
+
+    if session.current_question_number >= session.total_questions:
+
+        session.completed = True
+        session.save()
+
+        return Response({
+            "message": "Interview completed",
+            "answer_feedback": evaluation,
+            "interview_completed": True
+        })
+
+    # ---- Generate Next Question ----
+
+    resume_text = None
+
+    if session.resume:
+        resume_text = session.resume.extracted_text
+
+    history = build_interview_context(session)
+
+    selected_question = generate_ai_question(
+        session.domain,
+        resume_text,
+        history
+    )
+
+    next_question = Question.objects.create(
+        session=session,
+        question_text=selected_question,
+        ai_model_used="gemini-2.5-flash"
+    )
+
+    session.current_question_number += 1
+    session.save()
+
+    return Response({
+        "interview_completed": False,
+        "answer_feedback": evaluation,
+        "next_question": QuestionSerializer(next_question).data
     })

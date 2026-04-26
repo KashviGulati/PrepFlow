@@ -11,13 +11,23 @@ genai.configure(
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 
-def generate_question(domain, resume_text=None):
-
+def generate_question(domain, resume_text=None, history=None):
     prompt = f"""
     You are a professional interviewer.
 
     Generate ONE realistic interview question for a {domain} candidate.
     """
+
+    if history:
+
+        prompt += f"""
+
+        Previous Interview Context:
+
+        {history}
+
+        Ask a follow-up question that feels natural.
+        """
 
     if resume_text:
 
