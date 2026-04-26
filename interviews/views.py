@@ -1,14 +1,19 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import InterviewSession, Question, Answer
-from .serializers import InterviewSessionSerializer, QuestionSerializer, AnswerSerializer
-import random
 from django.contrib.auth.models import User
-from .evaluator import evaluate_answer
 from django.db.models import Avg
+
+from .models import InterviewSession, Question, Answer
+from .serializers import (
+    InterviewSessionSerializer,
+    QuestionSerializer,
+    AnswerSerializer
+)
+
+from .evaluator import evaluate_answer
 from ai_engine.llm_service import generate_question as generate_ai_question
 from ai_engine.answer_evaluator import evaluate_answer_ai
-
+from resumes.models import Resume
 
 
 @api_view(['POST'])
@@ -17,24 +22,52 @@ def start_interview(request):
     user = User.objects.first()
 
     domain = request.data.get('domain')
+    resume_id = request.data.get('resume_id')
+
+    resume = None
+
+    if resume_id:
+        try:
+            resume = Resume.objects.get(id=resume_id)
+        except Resume.DoesNotExist:
+            return Response({
+                "error": "Resume not found"
+            }, status=404)
 
     interview = InterviewSession.objects.create(
         user=user,
-        domain=domain
+        domain=domain,
+        resume=resume
     )
 
     serializer = InterviewSessionSerializer(interview)
 
     return Response(serializer.data)
 
+
 @api_view(['POST'])
 def generate_question(request):
 
     session_id = request.data.get('session_id')
 
-    session = InterviewSession.objects.get(id=session_id)
+    try:
+        session = InterviewSession.objects.get(id=session_id)
 
-    selected_question = generate_ai_question(session.domain)
+    except InterviewSession.DoesNotExist:
+
+        return Response({
+            "error": "Interview session not found"
+        }, status=404)
+
+    resume_text = None
+
+    if session.resume:
+        resume_text = session.resume.extracted_text
+
+    selected_question = generate_ai_question(
+        session.domain,
+        resume_text
+    )
 
     question = Question.objects.create(
         session=session,
@@ -56,7 +89,14 @@ def submit_answer(request):
     question_id = request.data.get('question_id')
     answer_text = request.data.get('answer_text')
 
-    question = Question.objects.get(id=question_id)
+    try:
+        question = Question.objects.get(id=question_id)
+
+    except Question.DoesNotExist:
+
+        return Response({
+            "error": "Question not found"
+        }, status=404)
 
     try:
 
@@ -65,6 +105,9 @@ def submit_answer(request):
             answer_text
         )
 
+        filler_count = 0
+        vocabulary_score = 0
+
     except:
 
         evaluation = evaluate_answer(
@@ -72,18 +115,22 @@ def submit_answer(request):
             answer_text
         )
 
+        filler_count = evaluation.get('filler_count', 0)
+        vocabulary_score = evaluation.get('vocabulary_score', 0)
+
     answer = Answer.objects.create(
         question=question,
         answer_text=answer_text,
-        semantic_score=evaluation['semantic_score'],
-        confidence_score=evaluation['confidence_score'],
-        filler_word_count=evaluation['filler_count'],
-        vocabulary_score=evaluation['vocabulary_score'],
-        technical_score=evaluation['technical_score'],
-        feedback=evaluation['feedback']
+        semantic_score=evaluation.get('semantic_score', 0),
+        confidence_score=evaluation.get('confidence_score', 0),
+        filler_word_count=filler_count,
+        vocabulary_score=vocabulary_score,
+        technical_score=evaluation.get('technical_score', 0),
+        feedback=evaluation.get('feedback', '')
     )
 
     session = question.session
+
     if session.current_question_number >= session.total_questions:
         session.completed = True
         session.save()
@@ -96,9 +143,14 @@ def submit_answer(request):
 @api_view(['GET'])
 def interview_summary(request, session_id):
 
-    session = InterviewSession.objects.get(id=session_id)
+    try:
+        session = InterviewSession.objects.get(id=session_id)
 
-    questions = Question.objects.filter(session=session)
+    except InterviewSession.DoesNotExist:
+
+        return Response({
+            "error": "Interview session not found"
+        }, status=404)
 
     answers = Answer.objects.filter(
         question__session=session
@@ -123,6 +175,7 @@ def interview_summary(request, session_id):
     return Response({
         "session_id": session.id,
         "domain": session.domain,
+        "resume_used": session.resume.id if session.resume else None,
         "completed": session.completed,
         "questions_answered": answers.count(),
         "average_semantic_score": avg_semantic,

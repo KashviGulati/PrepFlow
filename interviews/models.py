@@ -18,6 +18,13 @@ class InterviewSession(models.Model):
         choices=DOMAIN_CHOICES
     )
 
+    resume = models.ForeignKey(
+        'resumes.Resume',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     started_at = models.DateTimeField(auto_now_add=True)
 
     ended_at = models.DateTimeField(null=True, blank=True)
