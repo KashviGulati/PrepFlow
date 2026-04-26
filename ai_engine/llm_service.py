@@ -1,4 +1,5 @@
 import os
+import random
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -12,58 +13,106 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def generate_question(domain, resume_text=None, history=None):
+
+    history_text = history if history else "No previous questions"
+
     prompt = f"""
-    You are a professional interviewer.
+You are a strict technical interviewer.
 
-    Generate ONE realistic interview question for a {domain} candidate.
-    """
+Generate EXACTLY ONE interview question.
 
-    if history:
+Interview Domain:
+{domain}
 
-        prompt += f"""
+Previous Questions And Answers:
+{history_text}
 
-        Previous Interview Context:
+Resume Context:
+{resume_text if resume_text else "None"}
 
-        {history}
+VERY IMPORTANT RULES:
 
-        Ask a follow-up question that feels natural.
-        """
+- NEVER repeat any previous question.
+- NEVER ask about the same topic twice.
+- If OOP was already asked, do NOT ask OOP again.
+- Ask a completely different technical concept.
+- Generate only ONE question.
+- Return ONLY plain question text.
+- Do not add bullets.
+- Do not add explanation.
+- Do not add numbering.
+- Avoid generic questions.
+- Ask progressively different questions.
+- Keep question realistic and interview-level.
 
-    if resume_text:
-
-        prompt += f"""
-
-        Candidate Resume Context:
-
-        {resume_text[:3000]}
-
-        Ask a question specifically related to their projects,
-        internships, skills, or technical decisions.
-        """
+Generate the next unique question now.
+"""
 
     try:
 
+        print("===== INTERVIEW HISTORY =====")
+        print(history_text)
+        print("=============================")
+
         response = model.generate_content(prompt)
 
-        return response.text.strip()
+        question = response.text.strip()
 
-    except Exception:
+        question = (
+            question
+            .replace("*", "")
+            .replace('"', '')
+            .strip()
+        )
+
+        return question
+
+    except Exception as e:
+
+        print("Gemini Error:", e)
 
         fallback_questions = {
             "software_engineer": [
-                "Explain OOP principles.",
-                "Difference between stack and queue.",
-                "Explain REST API."
+                "Explain REST API.",
+                "What is database indexing?",
+                "Difference between process and thread.",
+                "What is dependency injection?",
+                "Explain multithreading."
             ],
 
             "data_analyst": [
                 "Explain SQL joins.",
+                "What is normalization?",
                 "Difference between mean and median.",
-                "What is normalization?"
+                "What is a primary key?",
+                "Explain data cleaning."
+            ],
+
+            "machine_learning": [
+                "What is overfitting?",
+                "Difference between supervised and unsupervised learning.",
+                "Explain bias vs variance.",
+                "What is gradient descent?",
+                "Explain confusion matrix."
             ]
         }
 
-        return fallback_questions.get(
+        questions = fallback_questions.get(
             domain,
             ["Tell me about yourself."]
-        )[0]
+        )
+
+        used_questions = []
+
+        if history:
+            used_questions = history.lower()
+
+        available = [
+            q for q in questions
+            if q.lower() not in used_questions
+        ]
+
+        if available:
+            return random.choice(available)
+
+        return random.choice(questions)

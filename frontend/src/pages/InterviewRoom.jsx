@@ -63,6 +63,7 @@ function InterviewRoom() {
           answer_text: answer,
         }
       );
+      console.log(response.data);
 
       if (response.data.interview_completed) {
 

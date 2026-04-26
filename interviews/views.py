@@ -343,3 +343,25 @@ def interview_step(request):
         "answer_feedback": evaluation,
         "next_question": QuestionSerializer(next_question).data
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def interview_history(request):
+
+    sessions = InterviewSession.objects.filter(
+        user=request.user
+    ).order_by('-started_at')
+
+    data = []
+
+    for session in sessions:
+
+        data.append({
+            "id": session.id,
+            "domain": session.domain,
+            "started_at": session.started_at,
+            "completed": session.completed
+        })
+
+    return Response(data)

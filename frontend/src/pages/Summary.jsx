@@ -40,41 +40,101 @@ function Summary() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+  <div className="min-h-screen bg-gray-100 p-8">
 
-      <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow">
+    <div className="max-w-4xl mx-auto">
 
-        <h1 className="text-3xl font-bold mb-6">
-          Interview Summary
+      <div className="bg-white rounded-xl shadow p-8">
+
+        <h1 className="text-4xl font-bold mb-8">
+          Interview Report
         </h1>
 
-        <p className="mb-2">
-          Domain: {summary.domain}
-        </p>
+        <div className="grid grid-cols-2 gap-6 mb-8">
 
-        <p className="mb-2">
-          Questions Answered: {summary.questions_answered}
-        </p>
+          <div className="bg-gray-50 p-6 rounded-lg">
 
-        <p className="mb-2">
-          Semantic Score: {summary.average_semantic_score}
-        </p>
+            <h3 className="text-gray-500 mb-2">
+              Domain
+            </h3>
 
-        <p className="mb-2">
-          Confidence Score: {summary.average_confidence_score}
-        </p>
+            <p className="text-2xl font-bold">
+              {summary.domain}
+            </p>
 
-        <p className="mb-2">
-          Vocabulary Score: {summary.average_vocabulary_score}
-        </p>
+          </div>
 
-        <p className="mb-2">
-          Technical Score: {summary.average_technical_score}
-        </p>
+          <div className="bg-gray-50 p-6 rounded-lg">
+
+            <h3 className="text-gray-500 mb-2">
+              Questions Answered
+            </h3>
+
+            <p className="text-2xl font-bold">
+              {summary.questions_answered}
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="space-y-4">
+
+          <div className="bg-gray-50 p-4 rounded">
+
+            <p className="font-semibold">
+              Semantic Score
+            </p>
+
+            <p className="text-2xl">
+              {summary.average_semantic_score}
+            </p>
+
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded">
+
+            <p className="font-semibold">
+              Confidence Score
+            </p>
+
+            <p className="text-2xl">
+              {summary.average_confidence_score}
+            </p>
+
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded">
+
+            <p className="font-semibold">
+              Vocabulary Score
+            </p>
+
+            <p className="text-2xl">
+              {summary.average_vocabulary_score}
+            </p>
+
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded">
+
+            <p className="font-semibold">
+              Technical Score
+            </p>
+
+            <p className="text-2xl">
+              {summary.average_technical_score}
+            </p>
+
+          </div>
+
+        </div>
 
       </div>
+
     </div>
-  );
+  </div>
+);
 }
 
 export default Summary;

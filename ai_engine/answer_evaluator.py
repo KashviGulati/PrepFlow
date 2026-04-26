@@ -17,52 +17,29 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 def evaluate_answer_ai(question, answer):
 
     prompt = f"""
-        You are a strict technical interviewer.
+    You are a professional interview evaluator.
 
-        Evaluate the candidate answer realistically.
+    Evaluate the candidate's answer.
 
-        Question:
-        {question}
+    Question:
+    {question}
 
-        Answer:
-        {answer}
+    Answer:
+    {answer}
 
-        Scoring Rules:
+    Score the answer from 1–10.
 
-        1. Semantic Score (0-10)
-        - How relevant is the answer to the question?
+    Return ONLY valid JSON.
 
-        2. Confidence Score (0-10)
-        - Does the answer sound confident and clear?
+    Required JSON format:
 
-        3. Technical Score (0-10)
-        - Does the answer show technical understanding?
-
-        4. Vocabulary Score (0-10)
-        - Is the language professional and detailed?
-
-        Important Rules:
-
-        - Very short answers should score extremely low.
-        - Generic answers should score extremely low.
-        - One-word answers should receive near-zero scores.
-        - Do NOT be polite.
-        - Be harsh but fair.
-        - Penalize weak explanations.
-        - Reward detailed reasoning.
-
-        Return ONLY valid JSON.
-
-        Format:
-
-        {{
-            "semantic_score": number,
-            "confidence_score": number,
-            "technical_score": number,
-            "vocabulary_score": number,
-            "feedback": "short interview feedback"
-        }}
-        """
+    {{
+        "semantic_score": number,
+        "technical_score": number,
+        "confidence_score": number,
+        "feedback": "feedback text"
+    }}
+    """
 
     try:
 
