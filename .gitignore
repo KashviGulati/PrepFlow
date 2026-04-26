@@ -6,3 +6,15 @@ db.sqlite3
 media/
 .idea/
 .vscode/
+
+# dependencies
+node_modules/
+
+# production build
+dist/
+build/
+
+# cache
+.cache/
+
+npm-debug.log*
