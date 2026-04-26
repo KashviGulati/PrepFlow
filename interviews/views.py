@@ -7,6 +7,9 @@ from django.contrib.auth.models import User
 from .evaluator import evaluate_answer
 from django.db.models import Avg
 from ai_engine.llm_service import generate_question as generate_ai_question
+from ai_engine.answer_evaluator import evaluate_answer_ai
+
+
 
 @api_view(['POST'])
 def start_interview(request):
@@ -35,7 +38,8 @@ def generate_question(request):
 
     question = Question.objects.create(
         session=session,
-        question_text=selected_question
+        question_text=selected_question,
+        ai_model_used="gemini-2.5-flash"
     )
 
     session.current_question_number += 1
@@ -54,10 +58,19 @@ def submit_answer(request):
 
     question = Question.objects.get(id=question_id)
 
-    evaluation = evaluate_answer(
-        question.question_text,
-        answer_text
-    )
+    try:
+
+        evaluation = evaluate_answer_ai(
+            question.question_text,
+            answer_text
+        )
+
+    except:
+
+        evaluation = evaluate_answer(
+            question.question_text,
+            answer_text
+        )
 
     answer = Answer.objects.create(
         question=question,

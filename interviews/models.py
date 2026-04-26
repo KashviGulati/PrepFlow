@@ -47,6 +47,11 @@ class Question(models.Model):
 
     generated_by_ai = models.BooleanField(default=True)
 
+    ai_model_used = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
