@@ -1,54 +1,55 @@
 import os
 import json
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure Gemini
-genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
 )
-
-# Gemini model
-model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def evaluate_answer_ai(question, answer):
 
     prompt = f"""
-    You are a professional interview evaluator.
+You are a strict technical interviewer.
 
-    Evaluate the candidate's answer.
+Question:
+{question}
 
-    Question:
-    {question}
+Candidate Answer:
+{answer}
 
-    Answer:
-    {answer}
+Evaluate strictly.
 
-    Score the answer from 1–10.
+Return ONLY JSON:
 
-    Return ONLY valid JSON.
-
-    Required JSON format:
-
-    {{
-        "semantic_score": number,
-        "technical_score": number,
-        "confidence_score": number,
-        "feedback": "feedback text"
-    }}
-    """
+{{
+    "semantic_score": number,
+    "technical_score": number,
+    "confidence_score": number,
+    "vocabulary_score": number,
+    "feedback": "short explanation"
+}}
+"""
 
     try:
 
-        response = model.generate_content(prompt)
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-        raw_text = response.text.strip()
+        raw = response.choices[0].message.content.strip()
 
         cleaned = (
-            raw_text
+            raw
             .replace("```json", "")
             .replace("```", "")
             .strip()
@@ -57,20 +58,21 @@ def evaluate_answer_ai(question, answer):
         parsed = json.loads(cleaned)
 
         return {
-            "semantic_score": parsed.get("semantic_score", 5),
-            "technical_score": parsed.get("technical_score", 5),
-            "confidence_score": parsed.get("confidence_score", 5),
-            "feedback": parsed.get(
-                "feedback",
-                "Evaluation completed."
-            )
+            "semantic_score": parsed.get("semantic_score", 0),
+            "technical_score": parsed.get("technical_score", 0),
+            "confidence_score": parsed.get("confidence_score", 0),
+            "vocabulary_score": parsed.get("vocabulary_score", 0),
+            "feedback": parsed.get("feedback", "")
         }
 
-    except Exception:
+    except Exception as e:
+
+        print("Groq Eval Error:", e)
 
         return {
-            "semantic_score": 5,
-            "technical_score": 5,
-            "confidence_score": 5,
-            "feedback": "AI evaluation unavailable."
+            "semantic_score": 0,
+            "technical_score": 0,
+            "confidence_score": 0,
+            "vocabulary_score": 0,
+            "feedback": "Evaluation unavailable."
         }

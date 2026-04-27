@@ -1,15 +1,13 @@
 import os
 import random
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
 )
-
-model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def generate_question(domain, resume_text=None, history=None):
@@ -54,9 +52,16 @@ Generate the next unique question now.
         print(history_text)
         print("=============================")
 
-        response = model.generate_content(prompt)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",           messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-        question = response.text.strip()
+        question = response.choices[0].message.content.strip()
 
         question = (
             question
@@ -69,7 +74,7 @@ Generate the next unique question now.
 
     except Exception as e:
 
-        print("Gemini Error:", e)
+        print("Groq Error:", e)
 
         fallback_questions = {
             "software_engineer": [
@@ -102,10 +107,7 @@ Generate the next unique question now.
             ["Tell me about yourself."]
         )
 
-        used_questions = []
-
-        if history:
-            used_questions = history.lower()
+        used_questions = history.lower() if history else ""
 
         available = [
             q for q in questions
