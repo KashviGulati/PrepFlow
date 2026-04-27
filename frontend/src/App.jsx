@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
@@ -7,6 +8,7 @@ import InterviewRoom from "./pages/InterviewRoom";
 import Summary from "./pages/Summary";
 import History from "./pages/History";
 
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
 
@@ -15,13 +17,56 @@ function App() {
 
       <Routes>
 
+        {/* Public Routes */}
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/start" element={<StartInterview />} />
-        <Route path="/interview/:sessionId" element={<InterviewRoom />} />
-        <Route path="/summary/:sessionId" element={<Summary />}/> 
-        <Route path="/history" element={<History />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/start"
+          element={
+            <ProtectedRoute>
+              <StartInterview />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/interview/:sessionId"
+          element={
+            <ProtectedRoute>
+              <InterviewRoom />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/summary/:sessionId"
+          element={
+            <ProtectedRoute>
+              <Summary />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
 
     </BrowserRouter>

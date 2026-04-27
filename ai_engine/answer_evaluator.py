@@ -37,8 +37,7 @@ Return ONLY JSON:
     try:
 
         response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
+            model="llama-3.3-70b-versatile",            messages=[
                 {
                     "role": "user",
                     "content": prompt
@@ -56,6 +55,8 @@ Return ONLY JSON:
         )
 
         parsed = json.loads(cleaned)
+        print("RAW GROQ RESPONSE:")
+        print(raw)
 
         return {
             "semantic_score": parsed.get("semantic_score", 0),
