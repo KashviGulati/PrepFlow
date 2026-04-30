@@ -31,6 +31,9 @@ def start_interview(request):
     domain = request.data.get('domain')
     resume_id = request.data.get('resume_id')
 
+    if not domain and resume_id:
+        domain = "resume_based"
+
     resume = None
 
     if resume_id:

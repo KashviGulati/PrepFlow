@@ -88,38 +88,6 @@ const styles = `
     outline: none;
     margin-bottom: 1.8rem;
     cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23647FBC' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    transition: border-color 0.2s;
-  }
-
-  .si-select:focus { border-color: #647FBC; }
-
-  .si-input {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1.5px solid rgba(100,127,188,0.25);
-    border-radius: 10px;
-    padding: 11px 14px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    color: #2e3a5c;
-    background: #fff;
-    outline: none;
-    margin-bottom: 0.6rem;
-    transition: border-color 0.2s;
-  }
-
-  .si-input:focus { border-color: #647FBC; }
-
-  .si-hint {
-    font-size: 0.8rem;
-    color: #b0baca;
-    font-weight: 300;
-    margin-bottom: 2rem;
-    display: block;
   }
 
   .si-divider {
@@ -135,6 +103,13 @@ const styles = `
     margin-bottom: 1.8rem;
   }
 
+  .si-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+  }
+
   .si-domain-chip {
     border: 1.5px solid rgba(100,127,188,0.2);
     border-radius: 10px;
@@ -144,7 +119,6 @@ const styles = `
     font-size: 0.82rem;
     color: #6b7a9a;
     transition: all 0.15s;
-    font-family: 'DM Sans', sans-serif;
     background: #fff;
   }
 
@@ -162,14 +136,10 @@ const styles = `
     border: none;
     border-radius: 10px;
     padding: 14px;
-    font-family: 'DM Sans', sans-serif;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
   }
-
-  .si-btn:hover { background: #5470a8; }
 `;
 
 const DOMAINS = [
@@ -180,16 +150,57 @@ const DOMAINS = [
 
 function StartInterview() {
   const navigate = useNavigate();
+
+  const [interviewMode, setInterviewMode] = useState("domain");
   const [domain, setDomain] = useState("software_engineer");
-  const [resumeId, setResumeId] = useState("");
+  const [resumeFile, setResumeFile] = useState(null);
 
   const startInterview = async () => {
     try {
-      const payload = { domain };
-      if (resumeId) payload.resume_id = resumeId;
-      const response = await api.post("/interview/start/", payload);
+      let uploadedResumeId = null;
+
+      if (interviewMode === "resume") {
+
+        if (!resumeFile) {
+          alert("Please upload a resume");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", resumeFile);
+
+        const uploadResponse = await api.post(
+          "/resume/upload/",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        uploadedResumeId = uploadResponse.data.id;
+      }
+
+      const payload = {};
+
+      if (interviewMode === "domain") {
+        payload.domain = domain;
+      }
+
+      if (interviewMode === "resume") {
+        payload.resume_id = uploadedResumeId;
+      }
+
+      const response = await api.post(
+        "/interview/start/",
+        payload
+      );
+
       navigate(`/interview/${response.data.id}`);
-    } catch {
+
+    } catch (error) {
+      console.log(error);
       alert("Failed to start interview");
     }
   };
@@ -203,47 +214,96 @@ function StartInterview() {
       </nav>
 
       <div className="si-body">
-        <button className="si-back" onClick={() => navigate("/dashboard")}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#647FBC" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          Dashboard
+
+        <button
+          className="si-back"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Dashboard
         </button>
 
-        <h1 className="si-title">New Interview</h1>
-        <p className="si-sub">Configure your session and jump right in.</p>
+        <h1 className="si-title">
+          New Interview
+        </h1>
+
+        <p className="si-sub">
+          Configure your session and jump right in.
+        </p>
 
         <div className="si-card">
-          <label className="si-label">Domain</label>
-          <div className="si-domains">
-            {DOMAINS.map((d) => (
-              <button
-                key={d.value}
-                className={`si-domain-chip${domain === d.value ? " active" : ""}`}
-                onClick={() => setDomain(d.value)}
-              >
-                {d.label}
-              </button>
-            ))}
+
+          <label className="si-label">
+            Interview Type
+          </label>
+
+          <div className="si-mode-grid">
+            <button
+              className={`si-domain-chip ${
+                interviewMode === "domain" ? "active" : ""
+              }`}
+              onClick={() => setInterviewMode("domain")}
+            >
+              Domain Based
+            </button>
+
+            <button
+              className={`si-domain-chip ${
+                interviewMode === "resume" ? "active" : ""
+              }`}
+              onClick={() => setInterviewMode("resume")}
+            >
+              Resume Based
+            </button>
           </div>
 
           <div className="si-divider" />
 
-          <label className="si-label">Resume ID</label>
-          <input
-            type="text"
-            className="si-input"
-            placeholder="Optional — paste your resume ID"
-            value={resumeId}
-            onChange={(e) => setResumeId(e.target.value)}
-          />
-          <span className="si-hint">
-            Attach a resume to get domain-specific questions tailored to your background.
-          </span>
+          {interviewMode === "domain" && (
+            <>
+              <label className="si-label">
+                Domain
+              </label>
 
-          <button onClick={startInterview} className="si-btn">
+              <div className="si-domains">
+                {DOMAINS.map((d) => (
+                  <button
+                    key={d.value}
+                    className={`si-domain-chip${
+                      domain === d.value ? " active" : ""
+                    }`}
+                    onClick={() => setDomain(d.value)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {interviewMode === "resume" && (
+            <>
+              <label className="si-label">
+                Upload Resume
+              </label>
+
+              <input
+                type="file"
+                accept=".pdf"
+                className="si-select"
+                onChange={(e) =>
+                  setResumeFile(e.target.files[0])
+                }
+              />
+            </>
+          )}
+
+          <button
+            onClick={startInterview}
+            className="si-btn"
+          >
             Start interview →
           </button>
+
         </div>
       </div>
     </div>
@@ -251,3 +311,4 @@ function StartInterview() {
 }
 
 export default StartInterview;
+
