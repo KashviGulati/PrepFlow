@@ -30,6 +30,10 @@ def start_interview(request):
 
     domain = request.data.get('domain')
     resume_id = request.data.get('resume_id')
+    difficulty_mode = request.data.get(
+        'difficulty_mode',
+        'beginner'
+    )
 
     if not domain and resume_id:
         domain = "resume_based"
@@ -50,7 +54,8 @@ def start_interview(request):
     interview = InterviewSession.objects.create(
         user=user,
         domain=domain,
-        resume=resume
+        resume=resume,
+        difficulty_mode=difficulty_mode
     )
 
     serializer = InterviewSessionSerializer(interview)
@@ -85,7 +90,8 @@ def generate_question(request):
     selected_question = generate_ai_question(
         session.domain,
         resume_text,
-        history
+        history,
+        session.difficulty_mode
     )
 
     question = Question.objects.create(
@@ -329,7 +335,8 @@ def interview_step(request):
     selected_question = generate_ai_question(
         session.domain,
         resume_text,
-        history
+        history,
+        session.difficulty_mode
     )
 
     next_question = Question.objects.create(

@@ -25,6 +25,11 @@ class InterviewSession(models.Model):
         blank=True
     )
 
+    difficulty_mode = models.CharField(
+        max_length=20,
+        default="beginner"
+    )
+
     started_at = models.DateTimeField(auto_now_add=True)
 
     ended_at = models.DateTimeField(null=True, blank=True)

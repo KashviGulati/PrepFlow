@@ -10,12 +10,19 @@ client = Groq(
 )
 
 
-def generate_question(domain, resume_text=None, history=None):
-
+def generate_question(
+    domain,
+    resume_text=None,
+    history=None,
+    difficulty_mode="beginner"
+):
     history_text = history if history else "No previous questions"
 
     prompt = f"""
 You are an experienced technical interviewer conducting a realistic mock interview.
+
+Interview Difficulty:
+{difficulty_mode}
 
 Interview Type:
 {"Resume-Based Interview" if resume_text else "Domain-Based Interview"}

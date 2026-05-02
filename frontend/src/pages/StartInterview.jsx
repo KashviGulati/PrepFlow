@@ -110,6 +110,13 @@ const styles = `
     margin-bottom: 2rem;
   }
 
+  .si-difficulty-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+  }
+
   .si-domain-chip {
     border: 1.5px solid rgba(100,127,188,0.2);
     border-radius: 10px;
@@ -154,9 +161,11 @@ function StartInterview() {
   const [interviewMode, setInterviewMode] = useState("domain");
   const [domain, setDomain] = useState("software_engineer");
   const [resumeFile, setResumeFile] = useState(null);
+  const [difficulty, setDifficulty] = useState("beginner");
 
   const startInterview = async () => {
     try {
+
       let uploadedResumeId = null;
 
       if (interviewMode === "resume") {
@@ -182,7 +191,9 @@ function StartInterview() {
         uploadedResumeId = uploadResponse.data.id;
       }
 
-      const payload = {};
+      const payload = {
+        difficulty_mode: difficulty,
+      };
 
       if (interviewMode === "domain") {
         payload.domain = domain;
@@ -237,6 +248,7 @@ function StartInterview() {
           </label>
 
           <div className="si-mode-grid">
+
             <button
               className={`si-domain-chip ${
                 interviewMode === "domain" ? "active" : ""
@@ -254,6 +266,7 @@ function StartInterview() {
             >
               Resume Based
             </button>
+
           </div>
 
           <div className="si-divider" />
@@ -268,8 +281,8 @@ function StartInterview() {
                 {DOMAINS.map((d) => (
                   <button
                     key={d.value}
-                    className={`si-domain-chip${
-                      domain === d.value ? " active" : ""
+                    className={`si-domain-chip ${
+                      domain === d.value ? "active" : ""
                     }`}
                     onClick={() => setDomain(d.value)}
                   >
@@ -297,6 +310,41 @@ function StartInterview() {
             </>
           )}
 
+          <label className="si-label">
+            Difficulty Level
+          </label>
+
+          <div className="si-difficulty-grid">
+
+            <button
+              className={`si-domain-chip ${
+                difficulty === "beginner" ? "active" : ""
+              }`}
+              onClick={() => setDifficulty("beginner")}
+            >
+              Beginner
+            </button>
+
+            <button
+              className={`si-domain-chip ${
+                difficulty === "intermediate" ? "active" : ""
+              }`}
+              onClick={() => setDifficulty("intermediate")}
+            >
+              Intermediate
+            </button>
+
+            <button
+              className={`si-domain-chip ${
+                difficulty === "advanced" ? "active" : ""
+              }`}
+              onClick={() => setDifficulty("advanced")}
+            >
+              Advanced
+            </button>
+
+          </div>
+
           <button
             onClick={startInterview}
             className="si-btn"
@@ -311,4 +359,3 @@ function StartInterview() {
 }
 
 export default StartInterview;
-
