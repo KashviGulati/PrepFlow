@@ -58,6 +58,27 @@ def start_interview(request):
         difficulty_mode=difficulty_mode
     )
 
+    resume_text = None
+
+    if resume:
+        resume_text = resume.extracted_text
+
+    first_question = generate_ai_question(
+        interview.domain,
+        resume_text,
+        None,
+        interview.difficulty_mode
+    )
+
+    Question.objects.create(
+        session=interview,
+        question_text=first_question,
+        ai_model_used="groq"
+    )
+
+    interview.current_question_number = 1
+    interview.save()
+
     serializer = InterviewSessionSerializer(interview)
 
     return Response(serializer.data)
@@ -106,6 +127,27 @@ def generate_question(request):
     serializer = QuestionSerializer(question)
 
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def current_question(request, session_id):
+
+    session = InterviewSession.objects.get(id=session_id)
+
+    question = Question.objects.filter(
+        session=session
+    ).order_by('-created_at').first()
+
+    if not question:
+
+        return Response({
+            "error": "No question found yet"
+        }, status=404)
+
+    return Response({
+        "id": question.id,
+        "question_text": question.question_text
+    })
 
 
 @api_view(['POST'])

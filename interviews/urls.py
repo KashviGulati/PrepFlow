@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import start_interview, generate_question, submit_answer, interview_summary, submit_audio_answer, interview_step, interview_history
+from .views import start_interview, generate_question, submit_answer, interview_summary, submit_audio_answer, interview_step, interview_history, current_question
 
 urlpatterns = [
     path('start/', start_interview),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('submit-audio-answer/', submit_audio_answer),
     path('interview-step/', interview_step),
     path('history/', interview_history),
+    path('current-question/<int:session_id>/',current_question),
 ]

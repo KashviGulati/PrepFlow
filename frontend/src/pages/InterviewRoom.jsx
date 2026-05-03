@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -74,7 +75,6 @@ const styles = `
     background: #647FBC;
     border-radius: 100px;
     width: 30%;
-    transition: width 0.4s ease;
   }
 
   .ir-progress-label {
@@ -101,8 +101,6 @@ const styles = `
     font-family: 'DM Serif Display', serif;
     font-size: 9rem;
     color: rgba(250,253,214,0.1);
-    line-height: 1;
-    pointer-events: none;
   }
 
   .ir-q-label {
@@ -151,13 +149,7 @@ const styles = `
     line-height: 1.65;
     resize: none;
     outline: none;
-    transition: border-color 0.2s;
     background: #fafbff;
-  }
-
-  .ir-textarea:focus {
-    border-color: #647FBC;
-    background: #fff;
   }
 
   .ir-char-count {
@@ -165,7 +157,7 @@ const styles = `
     font-size: 0.78rem;
     color: #b0baca;
     margin-top: 0.4rem;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1rem;
   }
 
   .ir-actions {
@@ -184,11 +176,12 @@ const styles = `
     font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s, opacity 0.2s;
   }
 
-  .ir-submit-btn:hover:not(:disabled) { background: #5470a8; }
-  .ir-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .ir-submit-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 
   .ir-loading {
     min-height: 100vh;
@@ -198,7 +191,6 @@ const styles = `
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    font-family: 'DM Sans', sans-serif;
   }
 
   .ir-spinner {
@@ -210,12 +202,13 @@ const styles = `
     animation: spin 0.8s linear infinite;
   }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 
   .ir-loading-text {
     color: #6b7a9a;
     font-size: 0.95rem;
-    font-weight: 300;
   }
 
   .ir-tip {
@@ -226,8 +219,13 @@ const styles = `
     border-radius: 0 10px 10px 0;
     font-size: 0.83rem;
     color: #4a7a74;
-    font-weight: 300;
-    line-height: 1.6;
+  }
+
+  .ir-record-status {
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #647FBC;
+    font-weight: 500;
   }
 `;
 
@@ -239,38 +237,123 @@ function InterviewRoom() {
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
 
-  useEffect(() => { fetchQuestion(); }, []);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  const fetchQuestion = async () => {
+  useEffect(() => {
+    fetchCurrentQuestion();
+  }, []);
+
+  const fetchCurrentQuestion = async () => {
     try {
-      const response = await api.post("/interview/generate-question/", { session_id: sessionId });
+      const response = await api.get(
+        `/interview/current-question/${sessionId}/`
+      );
+
       setQuestion(response.data);
+
     } catch (error) {
       console.log(error);
       alert("Failed to load question");
+
     } finally {
       setLoading(false);
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      const mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, {
+          type: "audio/webm",
+        });
+
+        setAudioBlob(blob);
+      };
+
+      mediaRecorder.start();
+      setRecording(true);
+
+    } catch (error) {
+      console.log(error);
+      alert("Microphone permission denied");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    }
+
+    setRecording(false);
+  };
+
   const submitAnswer = async () => {
-    if (!answer.trim()) { alert("Please enter an answer"); return; }
     try {
       setSubmitting(true);
-      const response = await api.post("/interview/interview-step/", {
-        question_id: question.id,
-        answer_text: answer,
-      });
+
+      let response;
+
+      if (audioBlob) {
+        const formData = new FormData();
+
+        formData.append("question_id", question.id);
+        formData.append("audio", audioBlob, "answer.webm");
+
+        response = await api.post(
+          "/interview/submit-audio-answer/",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      } else {
+        if (!answer.trim()) {
+          alert("Please type or record an answer");
+          setSubmitting(false);
+          return;
+        }
+
+        response = await api.post(
+          "/interview/interview-step/",
+          {
+            question_id: question.id,
+            answer_text: answer,
+          }
+        );
+      }
+
       if (response.data.interview_completed) {
         navigate(`/summary/${sessionId}`);
         return;
       }
+
       setQuestion(response.data.next_question);
       setAnswer("");
+      setAudioBlob(null);
+
     } catch (error) {
       console.log(error);
       alert("Failed to submit answer");
+
     } finally {
       setSubmitting(false);
     }
@@ -292,6 +375,7 @@ function InterviewRoom() {
 
       <nav className="ir-nav">
         <span className="ir-logo">PrepFlow</span>
+
         <div className="ir-nav-end">
           <button
             className="ir-end-btn"
@@ -307,6 +391,7 @@ function InterviewRoom() {
           <div className="ir-progress-bar">
             <div className="ir-progress-fill" />
           </div>
+
           <span className="ir-progress-label">In progress</span>
         </div>
 
@@ -317,28 +402,50 @@ function InterviewRoom() {
 
         <div className="ir-answer-section">
           <label className="ir-a-label">Your Answer</label>
+
           <textarea
             className="ir-textarea"
             rows={7}
-            placeholder="Type your answer here — be as detailed as you like..."
+            placeholder="Optional: type your answer here"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
+
           <div className="ir-char-count">{answer.length} characters</div>
 
+          <div className="ir-record-status">
+            {recording
+              ? "Recording in progress..."
+              : audioBlob
+              ? "Voice answer recorded"
+              : "No voice recording yet"}
+          </div>
+
           <div className="ir-actions">
+            <button
+              onClick={recording ? stopRecording : startRecording}
+              className="ir-submit-btn"
+            >
+              {recording
+                ? "Stop Recording"
+                : "🎙 Record Voice"}
+            </button>
+
             <button
               onClick={submitAnswer}
               disabled={submitting}
               className="ir-submit-btn"
             >
-              {submitting ? "Submitting..." : "Submit answer →"}
+              {submitting
+                ? "Submitting..."
+                : "Submit answer →"}
             </button>
           </div>
         </div>
 
         <div className="ir-tip">
-          💡 Tip: Structure your answer clearly — explain your reasoning, give examples, and conclude with a summary.
+          💡 Tip: Voice answers allow AI to evaluate confidence,
+          fillers, communication, vocabulary, and speaking quality.
         </div>
       </div>
     </div>
@@ -346,3 +453,4 @@ function InterviewRoom() {
 }
 
 export default InterviewRoom;
+
