@@ -14,7 +14,8 @@ def generate_question(
     domain,
     resume_text=None,
     history=None,
-    difficulty_mode="beginner"
+    difficulty_mode="beginner",
+    decision=None
 ):
     history_text = history if history else "No previous questions"
 
@@ -35,6 +36,25 @@ Resume Content:
 
 Previous Questions And Answers:
 {history_text}
+
+INTERVIEW DECISION CONTEXT:
+
+Previous Answer Evaluation:
+{decision if decision else "None"}
+
+BEHAVIOR RULES:
+
+If STRONG:
+- Ask deeper or advanced follow-up
+
+If PARTIAL:
+- Ask clarification or expand question
+
+If WEAK:
+- Ask simpler version or guide
+
+If IRRELEVANT:
+- Re-ask differently or shift topic
 
 STRICT INTERVIEW RULES:
 
@@ -59,20 +79,15 @@ QUESTION PROGRESSION:
 
 Question 1:
 - Ask simple introductory resume/project question.
-- Ask about one project or skill from resume.
-- Example:
-  "Can you explain the project where you used Flask and what your role was?"
 
 Question 2:
-- Ask about implementation details.
-- Ask how something was built.
-- Ask tool usage.
+- Ask implementation details.
 
 Question 3:
-- Ask debugging/problem-solving question related to resume.
+- Ask debugging/problem-solving.
 
 Question 4:
-- Ask optimization/scaling/performance question.
+- Ask optimization/performance.
 
 Question 5+:
 - Ask deeper architecture or edge-case questions.
@@ -84,7 +99,6 @@ AVOID:
 - Multi-part questions.
 - Very long questions.
 - Broad textbook questions.
-- Asking multiple concepts together.
 
 Question Style:
 - Natural interviewer tone.
@@ -95,7 +109,6 @@ Question Style:
 
 Generate the next interview question now.
 """
-
     try:
 
         print("===== INTERVIEW HISTORY =====")

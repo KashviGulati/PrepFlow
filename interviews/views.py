@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.db.models import Avg
-
+from ai_engine.interviewer_brain import analyze_answer
 from .models import InterviewSession, Question, Answer
 from .serializers import (
     InterviewSessionSerializer,
@@ -352,6 +352,12 @@ def interview_step(request):
         feedback=evaluation.get('feedback', '')
     )
 
+    # ---- Interview Decision (NEW) ----
+
+    decision = analyze_answer(
+        question.question_text,
+        answer_text
+    )
     # ---- Interview Complete? ----
 
     if session.current_question_number >= session.total_questions:
@@ -378,7 +384,8 @@ def interview_step(request):
         session.domain,
         resume_text,
         history,
-        session.difficulty_mode
+        session.difficulty_mode,
+        decision
     )
 
     next_question = Question.objects.create(
