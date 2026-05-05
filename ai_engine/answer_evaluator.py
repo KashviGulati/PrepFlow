@@ -13,7 +13,7 @@ client = Groq(
 def evaluate_answer_ai(question, answer):
 
     prompt = f"""
-You are a strict technical interviewer.
+You are a senior technical interviewer conducting a real interview.
 
 Question:
 {question}
@@ -21,17 +21,36 @@ Question:
 Candidate Answer:
 {answer}
 
-Evaluate strictly.
+Evaluate the answer like a real interviewer.
 
-Return ONLY JSON:
+Do NOT give scores.
+Do NOT return numbers.
+Do NOT return JSON.
 
-{{
-    "semantic_score": number,
-    "technical_score": number,
-    "confidence_score": number,
-    "vocabulary_score": number,
-    "feedback": "short explanation"
-}}
+Return ONLY structured feedback in this format:
+
+Strengths:
+- ...
+
+Areas for Improvement:
+- ...
+
+Communication Feedback:
+- Comment on confidence, clarity, articulation
+
+STAR Analysis:
+- Situation: ...
+- Task: ...
+- Action: ...
+- Result: ...
+
+Final Advice:
+- ...
+
+Tone Rules:
+- Be constructive, not harsh
+- Do NOT insult the candidate
+- Be realistic and specific
 """
 
     try:
@@ -54,26 +73,17 @@ Return ONLY JSON:
             .strip()
         )
 
-        parsed = json.loads(cleaned)
         print("RAW GROQ RESPONSE:")
         print(raw)
 
         return {
-            "semantic_score": parsed.get("semantic_score", 0),
-            "technical_score": parsed.get("technical_score", 0),
-            "confidence_score": parsed.get("confidence_score", 0),
-            "vocabulary_score": parsed.get("vocabulary_score", 0),
-            "feedback": parsed.get("feedback", "")
-        }
+            "feedback": raw
+    }
 
     except Exception as e:
 
         print("Groq Eval Error:", e)
 
         return {
-            "semantic_score": 0,
-            "technical_score": 0,
-            "confidence_score": 0,
-            "vocabulary_score": 0,
-            "feedback": "Evaluation unavailable."
-        }
+    "feedback": "Evaluation unavailable."
+}

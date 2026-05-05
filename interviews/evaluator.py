@@ -5,40 +5,64 @@ def evaluate_answer(question, answer):
 
     filler_words = ['um', 'uh', 'like', 'basically', 'actually']
 
-    filler_count = 0
-
     answer_lower = answer.lower()
 
-    for word in filler_words:
-        filler_count += answer_lower.count(word)
+    filler_count = sum(answer_lower.count(word) for word in filler_words)
 
-    semantic_score = min(len(answer.split()) / 5, 10)
+    word_count = len(answer.split())
 
-    confidence_score = max(10 - filler_count, 1)
+    unique_words = len(set(answer.split()))
 
-    vocabulary_score = min(len(set(answer.split())) / 3, 10)
+    # ---- Basic signal extraction ----
 
-    technical_score = semantic_score
+    confidence_level = "Low"
+    if filler_count <= 1:
+        confidence_level = "High"
+    elif filler_count <= 3:
+        confidence_level = "Moderate"
 
-    feedback = []
+    articulation = "Weak"
+    if word_count > 30:
+        articulation = "Good"
+    elif word_count > 15:
+        articulation = "Moderate"
 
-    if filler_count > 3:
-        feedback.append("Too many filler words.")
+    vocabulary = "Basic"
+    if unique_words > 20:
+        vocabulary = "Strong"
+    elif unique_words > 10:
+        vocabulary = "Moderate"
 
-    if semantic_score < 5:
-        feedback.append("Answer lacks depth.")
+    # ---- Structured feedback ----
 
-    if vocabulary_score < 4:
-        feedback.append("Try stronger vocabulary.")
+    feedback = f"""
+Strengths:
+- Attempted to answer the question
 
-    if not feedback:
-        feedback.append("Good response.")
+Areas for Improvement:
+- Answer lacks depth and detail
+- Provide more specific examples
+
+Communication Feedback:
+- Confidence: {confidence_level}
+- Articulation: {articulation}
+- Vocabulary: {vocabulary}
+
+STAR Analysis:
+- Situation: Not clearly described
+- Task: Missing
+- Action: Not explained
+- Result: Not mentioned
+
+Final Advice:
+- Structure your answers using the STAR method
+- Add concrete examples from your experience
+"""
 
     return {
-        "semantic_score": semantic_score,
-        "confidence_score": confidence_score,
-        "vocabulary_score": vocabulary_score,
-        "technical_score": technical_score,
         "filler_count": filler_count,
-        "feedback": " ".join(feedback)
+        "confidence_level": confidence_level,
+        "articulation": articulation,
+        "vocabulary_level": vocabulary,
+        "feedback": feedback.strip()
     }

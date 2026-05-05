@@ -1,9 +1,13 @@
-from groq import Groq
 import os
+import json
+from groq import Groq
+from dotenv import load_dotenv
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+load_dotenv()
 
 def analyze_answer(question, answer):
+
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     prompt = f"""
 You are a strict technical interviewer.
@@ -21,10 +25,9 @@ Classify the answer into ONE:
 - WEAK
 - IRRELEVANT
 
-Also provide:
-- 1 line reason
+Also provide a short reason.
 
-Return JSON:
+Return ONLY valid JSON:
 {{
   "classification": "",
   "reason": ""
@@ -36,4 +39,12 @@ Return JSON:
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
+
+    try:
+        return json.loads(content)
+    except:
+        return {
+            "classification": "PARTIAL",
+            "reason": "Parsing failed"
+        }

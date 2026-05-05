@@ -22,6 +22,46 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 
 
+def generate_final_feedback(answers):
+
+    combined = "\n\n".join([
+        f"Q: {a.question.question_text}\nA: {a.answer_text}\nFeedback: {a.feedback}"
+        for a in answers
+    ])
+
+    from groq import Groq
+    import os
+
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+    prompt = f"""
+You are a senior interviewer reviewing a full interview.
+
+Here are all answers:
+
+{combined}
+
+Generate a FINAL INTERVIEW REPORT:
+
+1. Overall Performance Summary
+2. Key Strengths
+3. Key Weaknesses
+4. Communication Skills
+5. Technical Understanding
+6. STAR Usage
+7. Final Advice
+
+Do NOT give scores.
+Be structured and realistic.
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return response.choices[0].message.content
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_interview(request):
@@ -189,15 +229,20 @@ def submit_answer(request):
         vocabulary_score = evaluation.get('vocabulary_score', 0)
 
     answer = Answer.objects.create(
-        question=question,
-        answer_text=answer_text,
-        semantic_score=evaluation.get('semantic_score', 0),
-        confidence_score=evaluation.get('confidence_score', 0),
-        filler_word_count=filler_count,
-        vocabulary_score=vocabulary_score,
-        technical_score=evaluation.get('technical_score', 0),
-        feedback=evaluation.get('feedback', '')
-    )
+    question=question,
+    answer_text=answer_text,
+
+    # keep these as placeholders (or remove later)
+    semantic_score=0,
+    confidence_score=0,
+    technical_score=0,
+    vocabulary_score=0,
+
+    filler_word_count=filler_count,
+
+    # THIS is what matters now
+    feedback=evaluation.get('feedback', '')
+)
 
     session = question.session
 
@@ -229,32 +274,14 @@ def interview_summary(request, session_id):
         question__session=session
     )
 
-    avg_semantic = answers.aggregate(
-        Avg('semantic_score')
-    )['semantic_score__avg']
-
-    avg_confidence = answers.aggregate(
-        Avg('confidence_score')
-    )['confidence_score__avg']
-
-    avg_vocab = answers.aggregate(
-        Avg('vocabulary_score')
-    )['vocabulary_score__avg']
-
-    avg_technical = answers.aggregate(
-        Avg('technical_score')
-    )['technical_score__avg']
+    final_feedback = generate_final_feedback(answers)
 
     return Response({
         "session_id": session.id,
         "domain": session.domain,
-        "resume_used": session.resume.id if session.resume else None,
         "completed": session.completed,
         "questions_answered": answers.count(),
-        "average_semantic_score": avg_semantic,
-        "average_confidence_score": avg_confidence,
-        "average_vocabulary_score": avg_vocab,
-        "average_technical_score": avg_technical
+        "final_feedback": final_feedback
     })
 
 @api_view(['POST'])
@@ -342,22 +369,32 @@ def interview_step(request):
         vocabulary_score = evaluation.get('vocabulary_score', 0)
 
     answer = Answer.objects.create(
-        question=question,
-        answer_text=answer_text,
-        semantic_score=evaluation.get('semantic_score', 0),
-        confidence_score=evaluation.get('confidence_score', 0),
-        filler_word_count=filler_count,
-        vocabulary_score=vocabulary_score,
-        technical_score=evaluation.get('technical_score', 0),
-        feedback=evaluation.get('feedback', '')
-    )
+    question=question,
+    answer_text=answer_text,
+
+    # keep these as placeholders (or remove later)
+    semantic_score=0,
+    confidence_score=0,
+    technical_score=0,
+    vocabulary_score=0,
+
+    filler_word_count=filler_count,
+
+    # THIS is what matters now
+    feedback=evaluation.get('feedback', '')
+)
 
     # ---- Interview Decision (NEW) ----
 
-    decision = analyze_answer(
+    decision_data = analyze_answer(
         question.question_text,
         answer_text
     )
+
+    decision = f"""
+    Classification: {decision_data.get("classification")}
+    Reason: {decision_data.get("reason")}
+"""
     # ---- Interview Complete? ----
 
     if session.current_question_number >= session.total_questions:

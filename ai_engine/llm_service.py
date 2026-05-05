@@ -42,19 +42,31 @@ INTERVIEW DECISION CONTEXT:
 Previous Answer Evaluation:
 {decision if decision else "None"}
 
-BEHAVIOR RULES:
+MANDATORY INTERVIEW BEHAVIOR:
 
-If STRONG:
-- Ask deeper or advanced follow-up
+You MUST follow these rules strictly:
 
-If PARTIAL:
-- Ask clarification or expand question
+1. If classification is STRONG:
+   - Ask a deeper follow-up question on the SAME topic
+   - Increase difficulty slightly
 
-If WEAK:
-- Ask simpler version or guide
+2. If classification is PARTIAL:
+   - Ask a clarification or expansion question
+   - Focus on missing parts of the answer
 
-If IRRELEVANT:
-- Re-ask differently or shift topic
+3. If classification is WEAK:
+   - Ask a simpler guiding question
+   - Help the candidate reach the correct concept
+
+4. If classification is IRRELEVANT:
+   - Re-ask the question differently OR switch topic
+
+CRITICAL RULES:
+
+- Prefer follow-up questions over new topics
+- Stay on the SAME concept unless IRRELEVANT
+- Do NOT jump randomly to a new topic
+- Do NOT restart the interview flow
 
 STRICT INTERVIEW RULES:
 
