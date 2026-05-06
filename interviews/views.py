@@ -189,24 +189,7 @@ def current_question(request, session_id):
         "question_text": question.question_text
     })
 
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def submit_answer(request):
-
-    question_id = request.data.get('question_id')
-    answer_text = request.data.get('answer_text')
-
-    try:
-        question = Question.objects.get(
-            id=question_id,
-            session__user=request.user
-        )
-    except Question.DoesNotExist:
-
-        return Response({
-            "error": "Question not found"
-        }, status=404)
+def process_answer(question, answer_text):
 
     try:
 
@@ -229,20 +212,43 @@ def submit_answer(request):
         vocabulary_score = evaluation.get('vocabulary_score', 0)
 
     answer = Answer.objects.create(
-    question=question,
-    answer_text=answer_text,
+        question=question,
+        answer_text=answer_text,
 
-    # keep these as placeholders (or remove later)
-    semantic_score=0,
-    confidence_score=0,
-    technical_score=0,
-    vocabulary_score=0,
+        semantic_score=0,
+        confidence_score=0,
+        technical_score=0,
+        vocabulary_score=0,
 
-    filler_word_count=filler_count,
+        filler_word_count=filler_count,
 
-    # THIS is what matters now
-    feedback=evaluation.get('feedback', '')
-)
+        feedback=evaluation.get('feedback', '')
+    )
+
+    return answer, evaluation
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_answer(request):
+
+    question_id = request.data.get('question_id')
+    answer_text = request.data.get('answer_text')
+
+    try:
+        question = Question.objects.get(
+            id=question_id,
+            session__user=request.user
+        )
+    except Question.DoesNotExist:
+
+        return Response({
+            "error": "Question not found"
+        }, status=404)
+
+    answer, evaluation = process_answer(
+        question,
+        answer_text
+    )
 
     session = question.session
 
@@ -318,12 +324,18 @@ def submit_audio_answer(request):
 
     transcribed_text = transcribe_audio(temp_path)
 
-    request._full_data = {
-        "question_id": question_id,
-        "answer_text": transcribed_text
-    }
+    answer, evaluation = process_answer(
+        question,
+        transcribed_text
+)
 
-    return submit_answer(request)
+    serializer = AnswerSerializer(answer)
+
+    return Response({
+        "transcript": transcribed_text,
+        "answer": serializer.data,
+        "evaluation": evaluation
+    })
 
 
 @api_view(['POST'])
@@ -390,10 +402,20 @@ def interview_step(request):
         question.question_text,
         answer_text
     )
+    from ai_engine.followups.followup_manager import should_followup
+
+    classification = decision_data.get("classification")
+
+    followup_required = should_followup(classification)
 
     decision = f"""
-    Classification: {decision_data.get("classification")}
-    Reason: {decision_data.get("reason")}
+        Classification: {classification}
+
+        Reason:
+        {decision_data.get("reason")}
+
+        Followup Required:
+        {followup_required}
 """
     # ---- Interview Complete? ----
 
