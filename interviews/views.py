@@ -20,6 +20,7 @@ from ai_engine.context_builder import build_interview_context
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
+from ai_engine.interview_pipeline import run_interview_pipeline
 
 
 def generate_final_feedback(answers):
@@ -324,17 +325,28 @@ def submit_audio_answer(request):
 
     transcribed_text = transcribe_audio(temp_path)
 
-    answer, evaluation = process_answer(
-        question,
-        transcribed_text
-)
+    result = run_interview_pipeline(
+    question,
+    transcribed_text
+    )
 
-    serializer = AnswerSerializer(answer)
+    if result["completed"]:
+
+        return Response({
+            "interview_completed": True,
+            "evaluation": result["evaluation"]
+        })
+
+    next_question = result["next_question"]
 
     return Response({
+        "interview_completed": False,
         "transcript": transcribed_text,
-        "answer": serializer.data,
-        "evaluation": evaluation
+        "evaluation": result["evaluation"],
+        "next_question": {
+            "id": next_question.id,
+            "question_text": next_question.question_text
+        }
     })
 
 
