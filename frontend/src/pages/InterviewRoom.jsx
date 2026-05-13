@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -150,13 +149,6 @@ const styles = `
     resize: none;
     outline: none;
     background: #fafbff;
-  }
-
-  .ir-char-count {
-    text-align: right;
-    font-size: 0.78rem;
-    color: #b0baca;
-    margin-top: 0.4rem;
     margin-bottom: 1rem;
   }
 
@@ -230,6 +222,7 @@ const styles = `
 `;
 
 function InterviewRoom() {
+
   const { sessionId } = useParams();
   const navigate = useNavigate();
 
@@ -240,6 +233,9 @@ function InterviewRoom() {
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
 
+  // NEW
+  const [questionAudio, setQuestionAudio] = useState(null);
+
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -247,8 +243,24 @@ function InterviewRoom() {
     fetchCurrentQuestion();
   }, []);
 
+  // NEW → autoplay interviewer voice
+  useEffect(() => {
+
+    if (questionAudio) {
+
+      const audio = new Audio(
+        `http://127.0.0.1:8000/${questionAudio}`
+      );
+
+      audio.play();
+    }
+
+  }, [questionAudio]);
+
   const fetchCurrentQuestion = async () => {
+
     try {
+
       const response = await api.get(
         `/interview/current-question/${sessionId}/`
       );
@@ -256,16 +268,20 @@ function InterviewRoom() {
       setQuestion(response.data);
 
     } catch (error) {
+
       console.log(error);
       alert("Failed to load question");
 
     } finally {
+
       setLoading(false);
     }
   };
 
   const startRecording = async () => {
+
     try {
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
@@ -280,9 +296,13 @@ function InterviewRoom() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
+
+        const blob = new Blob(
+          audioChunksRef.current,
+          {
+            type: "audio/webm",
+          }
+        );
 
         setAudioBlob(blob);
       };
@@ -291,12 +311,14 @@ function InterviewRoom() {
       setRecording(true);
 
     } catch (error) {
+
       console.log(error);
       alert("Microphone permission denied");
     }
   };
 
   const stopRecording = () => {
+
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
@@ -305,130 +327,169 @@ function InterviewRoom() {
   };
 
   const submitAnswer = async () => {
+
     try {
+
       setSubmitting(true);
 
-      let response;
+      if (!audioBlob) {
 
-      if (audioBlob) {
-        const formData = new FormData();
+        alert("Please record your answer");
 
-        formData.append("question_id", question.id);
-        formData.append("audio", audioBlob, "answer.webm");
-
-        response = await api.post(
-          "/interview/submit-audio-answer/",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-      } else {
-        if (!answer.trim()) {
-          alert("Please type or record an answer");
-          setSubmitting(false);
-          return;
-        }
-
-        response = await api.post(
-          "/interview/interview-step/",
-          {
-            question_id: question.id,
-            answer_text: answer,
-          }
-        );
+        setSubmitting(false);
+        return;
       }
 
+      const formData = new FormData();
+
+      formData.append(
+        "question_id",
+        question.id
+      );
+
+      formData.append(
+        "audio",
+        audioBlob,
+        "answer.webm"
+      );
+
+      const response = await api.post(
+        "/interview/submit-audio-answer/",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
       if (response.data.interview_completed) {
+
         navigate(`/summary/${sessionId}`);
         return;
       }
 
+      // NEW
       setQuestion(response.data.next_question);
+
+      // NEW
+      setQuestionAudio(response.data.audio_path);
+
       setAnswer("");
       setAudioBlob(null);
 
     } catch (error) {
+
       console.log(error);
       alert("Failed to submit answer");
 
     } finally {
+
       setSubmitting(false);
     }
   };
 
   if (loading) {
+
     return (
       <div className="ir-loading">
         <style>{styles}</style>
+
         <div className="ir-spinner" />
-        <p className="ir-loading-text">Preparing your question...</p>
+
+        <p className="ir-loading-text">
+          Preparing your interview...
+        </p>
       </div>
     );
   }
 
   return (
     <div className="ir-root">
+
       <style>{styles}</style>
 
       <nav className="ir-nav">
-        <span className="ir-logo">PrepFlow</span>
+
+        <span className="ir-logo">
+          PrepFlow
+        </span>
 
         <div className="ir-nav-end">
+
           <button
             className="ir-end-btn"
             onClick={() => navigate(`/summary/${sessionId}`)}
           >
             End session
           </button>
+
         </div>
       </nav>
 
       <div className="ir-body">
+
         <div className="ir-progress-wrap">
+
           <div className="ir-progress-bar">
             <div className="ir-progress-fill" />
           </div>
 
-          <span className="ir-progress-label">In progress</span>
+          <span className="ir-progress-label">
+            Voice interview in progress
+          </span>
+
         </div>
 
         <div className="ir-question-card">
-          <p className="ir-q-label">Question</p>
-          <p className="ir-question-text">{question?.question_text}</p>
+
+          <p className="ir-q-label">
+            Interview Question
+          </p>
+
+          <p className="ir-question-text">
+            {question?.question_text}
+          </p>
+
         </div>
 
         <div className="ir-answer-section">
-          <label className="ir-a-label">Your Answer</label>
+
+          <label className="ir-a-label">
+            Voice Response
+          </label>
 
           <textarea
             className="ir-textarea"
-            rows={7}
-            placeholder="Optional: type your answer here"
+            rows={4}
+            placeholder="Transcript/debug only..."
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
 
-          <div className="ir-char-count">{answer.length} characters</div>
-
           <div className="ir-record-status">
+
             {recording
-              ? "Recording in progress..."
+              ? "🎙 Recording in progress..."
               : audioBlob
-              ? "Voice answer recorded"
-              : "No voice recording yet"}
+              ? "✅ Voice answer recorded"
+              : "No recording yet"}
+
           </div>
 
           <div className="ir-actions">
+
             <button
-              onClick={recording ? stopRecording : startRecording}
+              onClick={
+                recording
+                  ? stopRecording
+                  : startRecording
+              }
               className="ir-submit-btn"
             >
               {recording
                 ? "Stop Recording"
-                : "🎙 Record Voice"}
+                : "🎤 Record Answer"}
             </button>
 
             <button
@@ -437,20 +498,28 @@ function InterviewRoom() {
               className="ir-submit-btn"
             >
               {submitting
-                ? "Submitting..."
-                : "Submit answer →"}
+                ? "Processing..."
+                : "Submit Voice Answer"}
             </button>
+
           </div>
+
         </div>
 
         <div className="ir-tip">
-          💡 Tip: Voice answers allow AI to evaluate confidence,
-          fillers, communication, vocabulary, and speaking quality.
+          AI evaluates:
+          communication,
+          clarity,
+          fillers,
+          vocabulary,
+          pacing,
+          and technical relevance
+          through voice responses.
         </div>
+
       </div>
     </div>
   );
 }
 
 export default InterviewRoom;
-

@@ -208,7 +208,7 @@ function StartInterview() {
         payload
       );
 
-      navigate(`/interview/${response.data.id}`);
+      navigate(`/interview/${response.data.session_id}`);
 
     } catch (error) {
       console.log(error);

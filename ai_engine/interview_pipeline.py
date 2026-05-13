@@ -5,7 +5,7 @@ from ai_engine.interviewer_brain import analyze_answer
 from ai_engine.llm_service import generate_question
 from ai_engine.context_builder import build_interview_context
 from ai_engine.followups.followup_manager import should_followup
-
+from ai_engine.speech.tts_service import generate_question_audio
 
 def run_interview_pipeline(question, answer_text):
 
@@ -121,11 +121,16 @@ Followup Required:
         ai_model_used="groq"
     )
 
+    audio_path = generate_question_audio(
+    next_question_text
+)
+    
     session.current_question_number += 1
     session.save()
 
     return {
         "completed": False,
         "evaluation": evaluation,
-        "next_question": next_question
+        "next_question": next_question,
+        "audio_path": audio_path
     }

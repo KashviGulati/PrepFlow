@@ -1,26 +1,30 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
 from django.contrib.auth.models import User
 from django.db.models import Avg
+
+import os
+
 from ai_engine.interviewer_brain import analyze_answer
+from ai_engine.llm_service import generate_question as generate_ai_question
+from ai_engine.answer_evaluator import evaluate_answer_ai
+from ai_engine.audio_transcriber import transcribe_audio
+from ai_engine.context_builder import build_interview_context
+from ai_engine.interview_pipeline import run_interview_pipeline
+from ai_engine.speech.tts_service import generate_question_audio
+
+from resumes.models import Resume
+
 from .models import InterviewSession, Question, Answer
 from .serializers import (
     InterviewSessionSerializer,
     QuestionSerializer,
     AnswerSerializer
 )
-import os
+
 from .evaluator import evaluate_answer
-from ai_engine.llm_service import generate_question as generate_ai_question
-from ai_engine.answer_evaluator import evaluate_answer_ai
-from resumes.models import Resume
-
-from ai_engine.audio_transcriber import transcribe_audio
-from ai_engine.context_builder import build_interview_context
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
-from ai_engine.interview_pipeline import run_interview_pipeline
 
 
 def generate_final_feedback(answers):
@@ -31,9 +35,10 @@ def generate_final_feedback(answers):
     ])
 
     from groq import Groq
-    import os
 
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    client = Groq(
+        api_key=os.getenv("GROQ_API_KEY")
+    )
 
     prompt = f"""
 You are a senior interviewer reviewing a full interview.
@@ -58,10 +63,16 @@ Be structured and realistic.
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     )
 
     return response.choices[0].message.content
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -71,6 +82,7 @@ def start_interview(request):
 
     domain = request.data.get('domain')
     resume_id = request.data.get('resume_id')
+
     difficulty_mode = request.data.get(
         'difficulty_mode',
         'beginner'
@@ -82,12 +94,16 @@ def start_interview(request):
     resume = None
 
     if resume_id:
+
         try:
+
             resume = Resume.objects.get(
                 id=resume_id,
                 user=request.user
-            ) 
+            )
+
         except Resume.DoesNotExist:
+
             return Response({
                 "error": "Resume not found"
             }, status=404)
@@ -111,69 +127,47 @@ def start_interview(request):
         interview.difficulty_mode
     )
 
-    Question.objects.create(
+    question = Question.objects.create(
         session=interview,
         question_text=first_question,
         ai_model_used="groq"
     )
 
+    audio_path = generate_question_audio(
+        first_question
+    )
+
     interview.current_question_number = 1
     interview.save()
 
-    serializer = InterviewSessionSerializer(interview)
+    return Response({
+        "session_id": interview.id,
 
-    return Response(serializer.data)
+        "question": {
+            "id": question.id,
+            "question_text": question.question_text
+        },
+
+        "audio_path": audio_path
+    })
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def generate_question(request):
-
-    session_id = request.data.get('session_id')
+def current_question(request, session_id):
 
     try:
+
         session = InterviewSession.objects.get(
             id=session_id,
             user=request.user
         )
+
     except InterviewSession.DoesNotExist:
 
         return Response({
             "error": "Interview session not found"
         }, status=404)
-
-    resume_text = None
-
-    if session.resume:
-        resume_text = session.resume.extracted_text
-
-    history = build_interview_context(session)
-
-    selected_question = generate_ai_question(
-        session.domain,
-        resume_text,
-        history,
-        session.difficulty_mode
-    )
-
-    question = Question.objects.create(
-        session=session,
-        question_text=selected_question,
-        ai_model_used="gemini-2.5-flash"
-    )
-
-    session.current_question_number += 1
-    session.save()
-
-    serializer = QuestionSerializer(question)
-
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-def current_question(request, session_id):
-
-    session = InterviewSession.objects.get(id=session_id)
 
     question = Question.objects.filter(
         session=session
@@ -190,74 +184,52 @@ def current_question(request, session_id):
         "question_text": question.question_text
     })
 
-def process_answer(question, answer_text):
-
-    try:
-
-        evaluation = evaluate_answer_ai(
-            question.question_text,
-            answer_text
-        )
-
-        filler_count = 0
-        vocabulary_score = 0
-
-    except:
-
-        evaluation = evaluate_answer(
-            question.question_text,
-            answer_text
-        )
-
-        filler_count = evaluation.get('filler_count', 0)
-        vocabulary_score = evaluation.get('vocabulary_score', 0)
-
-    answer = Answer.objects.create(
-        question=question,
-        answer_text=answer_text,
-
-        semantic_score=0,
-        confidence_score=0,
-        technical_score=0,
-        vocabulary_score=0,
-
-        filler_word_count=filler_count,
-
-        feedback=evaluation.get('feedback', '')
-    )
-
-    return answer, evaluation
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def submit_answer(request):
+def generate_question(request):
 
-    question_id = request.data.get('question_id')
-    answer_text = request.data.get('answer_text')
+    session_id = request.data.get('session_id')
 
     try:
-        question = Question.objects.get(
-            id=question_id,
-            session__user=request.user
+
+        session = InterviewSession.objects.get(
+            id=session_id,
+            user=request.user
         )
-    except Question.DoesNotExist:
+
+    except InterviewSession.DoesNotExist:
 
         return Response({
-            "error": "Question not found"
+            "error": "Interview session not found"
         }, status=404)
 
-    answer, evaluation = process_answer(
-        question,
-        answer_text
+    resume_text = None
+
+    if session.resume:
+        resume_text = session.resume.extracted_text
+
+    history = build_interview_context(
+        session
     )
 
-    session = question.session
+    selected_question = generate_ai_question(
+        session.domain,
+        resume_text,
+        history,
+        session.difficulty_mode
+    )
 
-    if session.current_question_number >= session.total_questions:
-        session.completed = True
-        session.save()
+    question = Question.objects.create(
+        session=session,
+        question_text=selected_question,
+        ai_model_used="groq"
+    )
 
-    serializer = AnswerSerializer(answer)
+    session.current_question_number += 1
+    session.save()
+
+    serializer = QuestionSerializer(question)
 
     return Response(serializer.data)
 
@@ -267,10 +239,12 @@ def submit_answer(request):
 def interview_summary(request, session_id):
 
     try:
+
         session = InterviewSession.objects.get(
             id=session_id,
             user=request.user
         )
+
     except InterviewSession.DoesNotExist:
 
         return Response({
@@ -281,7 +255,9 @@ def interview_summary(request, session_id):
         question__session=session
     )
 
-    final_feedback = generate_final_feedback(answers)
+    final_feedback = generate_final_feedback(
+        answers
+    )
 
     return Response({
         "session_id": session.id,
@@ -291,13 +267,18 @@ def interview_summary(request, session_id):
         "final_feedback": final_feedback
     })
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_audio_answer(request):
 
-    question_id = request.data.get('question_id')
+    question_id = request.data.get(
+        'question_id'
+    )
 
-    audio_file = request.FILES.get('audio')
+    audio_file = request.FILES.get(
+        'audio'
+    )
 
     if not audio_file:
 
@@ -305,29 +286,43 @@ def submit_audio_answer(request):
             "error": "No audio uploaded"
         }, status=400)
 
-    question = Question.objects.get(
-        id=question_id,
-        session__user=request.user
-    )
+    try:
+
+        question = Question.objects.get(
+            id=question_id,
+            session__user=request.user
+        )
+
+    except Question.DoesNotExist:
+
+        return Response({
+            "error": "Question not found"
+        }, status=404)
+
     temp_dir = "media/temp"
 
-    os.makedirs(temp_dir, exist_ok=True)
+    os.makedirs(
+        temp_dir,
+        exist_ok=True
+    )
 
     temp_path = os.path.join(
         temp_dir,
         audio_file.name
     )
+
     with open(temp_path, 'wb+') as destination:
 
         for chunk in audio_file.chunks():
-
             destination.write(chunk)
 
-    transcribed_text = transcribe_audio(temp_path)
+    transcribed_text = transcribe_audio(
+        temp_path
+    )
 
     result = run_interview_pipeline(
-    question,
-    transcribed_text
+        question,
+        transcribed_text
     )
 
     if result["completed"]:
@@ -343,6 +338,7 @@ def submit_audio_answer(request):
         "interview_completed": False,
         "transcript": transcribed_text,
         "evaluation": result["evaluation"],
+        "audio_path": result["audio_path"],
         "next_question": {
             "id": next_question.id,
             "question_text": next_question.question_text
@@ -354,124 +350,49 @@ def submit_audio_answer(request):
 @permission_classes([IsAuthenticated])
 def interview_step(request):
 
-    question_id = request.data.get('question_id')
-    answer_text = request.data.get('answer_text')
+    question_id = request.data.get(
+        'question_id'
+    )
+
+    answer_text = request.data.get(
+        'answer_text'
+    )
 
     try:
+
         question = Question.objects.get(
             id=question_id,
             session__user=request.user
         )
+
     except Question.DoesNotExist:
 
         return Response({
             "error": "Question not found"
         }, status=404)
 
-    session = question.session
-
-    # ---- Evaluate Answer ----
-
-    try:
-
-        evaluation = evaluate_answer_ai(
-            question.question_text,
-            answer_text
-        )
-
-        filler_count = 0
-        vocabulary_score = 0
-
-    except:
-
-        evaluation = evaluate_answer(
-            question.question_text,
-            answer_text
-        )
-
-        filler_count = evaluation.get('filler_count', 0)
-        vocabulary_score = evaluation.get('vocabulary_score', 0)
-
-    answer = Answer.objects.create(
-    question=question,
-    answer_text=answer_text,
-
-    # keep these as placeholders (or remove later)
-    semantic_score=0,
-    confidence_score=0,
-    technical_score=0,
-    vocabulary_score=0,
-
-    filler_word_count=filler_count,
-
-    # THIS is what matters now
-    feedback=evaluation.get('feedback', '')
-)
-
-    # ---- Interview Decision (NEW) ----
-
-    decision_data = analyze_answer(
-        question.question_text,
+    result = run_interview_pipeline(
+        question,
         answer_text
     )
-    from ai_engine.followups.followup_manager import should_followup
 
-    classification = decision_data.get("classification")
-
-    followup_required = should_followup(classification)
-
-    decision = f"""
-        Classification: {classification}
-
-        Reason:
-        {decision_data.get("reason")}
-
-        Followup Required:
-        {followup_required}
-"""
-    # ---- Interview Complete? ----
-
-    if session.current_question_number >= session.total_questions:
-
-        session.completed = True
-        session.save()
+    if result["completed"]:
 
         return Response({
-            "message": "Interview completed",
-            "answer_feedback": evaluation,
-            "interview_completed": True
+            "interview_completed": True,
+            "evaluation": result["evaluation"]
         })
 
-    # ---- Generate Next Question ----
-
-    resume_text = None
-
-    if session.resume:
-        resume_text = session.resume.extracted_text
-
-    history = build_interview_context(session)
-
-    selected_question = generate_ai_question(
-        session.domain,
-        resume_text,
-        history,
-        session.difficulty_mode,
-        decision
-    )
-
-    next_question = Question.objects.create(
-        session=session,
-        question_text=selected_question,
-        ai_model_used="gemini-2.5-flash"
-    )
-
-    session.current_question_number += 1
-    session.save()
+    next_question = result["next_question"]
 
     return Response({
         "interview_completed": False,
-        "answer_feedback": evaluation,
-        "next_question": QuestionSerializer(next_question).data
+        "evaluation": result["evaluation"],
+        "audio_path": result["audio_path"],
+        "next_question": {
+            "id": next_question.id,
+            "question_text": next_question.question_text
+        }
     })
 
 
