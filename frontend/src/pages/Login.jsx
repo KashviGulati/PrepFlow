@@ -165,8 +165,8 @@ function Login() {
   const handleLogin = async () => {
     try {
       const response = await api.post("/token/", { username, password });
-      localStorage.setItem("access_token", response.data.access);
-      localStorage.setItem("refresh_token", response.data.refresh);
+      localStorage.setItem("access", response.data.access);
+      localStorage.setItem("refresh", response.data.refresh);
       navigate("/dashboard");
     } catch {
       alert("Invalid credentials");
