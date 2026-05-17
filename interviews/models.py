@@ -15,7 +15,6 @@ class InterviewSession(models.Model):
 
     domain = models.CharField(
         max_length=50,
-        choices=DOMAIN_CHOICES
     )
 
     resume = models.ForeignKey(
@@ -35,9 +34,10 @@ class InterviewSession(models.Model):
     ended_at = models.DateTimeField(null=True, blank=True)
 
     overall_score = models.FloatField(default=0)
-    total_questions = models.IntegerField(default=5)
+    total_questions = models.IntegerField(default=15)
 
     current_question_number = models.IntegerField(default=0)
+    followup_count = models.IntegerField(default=0)
     completed = models.BooleanField(default=False)
 
     def __str__(self):

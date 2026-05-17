@@ -7,6 +7,7 @@ from ai_engine.context_builder import build_interview_context
 from ai_engine.followups.followup_manager import should_followup
 from ai_engine.speech.tts_service import generate_question_audio
 
+
 def run_interview_pipeline(question, answer_text):
 
     session = question.session
@@ -70,6 +71,31 @@ def run_interview_pipeline(question, answer_text):
         classification
     )
 
+    # ----------------------------
+    # Followup Limiting Logic
+    # ----------------------------
+
+    MAX_FOLLOWUPS = 2
+
+    if followup_required:
+
+        if session.followup_count >= MAX_FOLLOWUPS:
+
+            followup_required = False
+            session.followup_count = 0
+
+        else:
+
+            session.followup_count += 1
+
+    else:
+
+        session.followup_count = 0
+
+    # ----------------------------
+    # Interview Guidance Prompt
+    # ----------------------------
+
     decision = f"""
 Classification: {classification}
 
@@ -78,6 +104,16 @@ Reason:
 
 Followup Required:
 {followup_required}
+
+Current Followup Count:
+{session.followup_count}
+
+IMPORTANT INSTRUCTIONS:
+- Do not stay on the same topic for too long.
+- Maximum 2 followups per topic.
+- If enough followups were already asked, switch to a different topic.
+- Avoid repeating previously discussed concepts.
+- Increase difficulty progressively throughout the interview.
 """
 
     # ----------------------------
@@ -122,10 +158,12 @@ Followup Required:
     )
 
     audio_path = generate_question_audio(
-    next_question_text
-)
-    
+        next_question_text
+    )
+
     session.current_question_number += 1
+
+    # Save updated counters/state
     session.save()
 
     return {
