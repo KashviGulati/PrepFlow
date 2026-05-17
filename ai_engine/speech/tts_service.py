@@ -1,35 +1,43 @@
-import os
+import edge_tts
+import asyncio
 import uuid
+import os
 
-from elevenlabs.client import ElevenLabs
-from dotenv import load_dotenv
 
-load_dotenv()
+async def tts(text, output_path):
 
-client = ElevenLabs(
-    api_key=os.getenv("ELEVENLABS_API_KEY")
-)
-
-def generate_question_audio(question_text):
-
-    audio = client.text_to_speech.convert(
-        voice_id="EXAVITQu4vr4xnSDxMaL",
-        model_id="eleven_multilingual_v2",
-        text=question_text
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice="en-US-AriaNeural"
     )
 
-    os.makedirs("media/questions", exist_ok=True)
+    await communicate.save(output_path)
 
-    filename = f"{uuid.uuid4()}.mp3"
 
-    filepath = os.path.join(
-        "media/questions",
-        filename
-    )
+def generate_question_audio(text):
 
-    with open(filepath, "wb") as f:
+    try:
 
-        for chunk in audio:
-            f.write(chunk)
+        os.makedirs(
+            "media/audio",
+            exist_ok=True
+        )
 
-    return filepath
+        filename = f"{uuid.uuid4()}.mp3"
+
+        output_path = os.path.join(
+            "media/audio",
+            filename
+        )
+
+        asyncio.run(
+            tts(text, output_path)
+        )
+
+        return output_path
+
+    except Exception as e:
+
+        print("TTS ERROR:", e)
+
+        return None
