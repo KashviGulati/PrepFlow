@@ -17,7 +17,7 @@ api.interceptors.request.use((config) => {
 
   if (!isPublicRoute) {
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access");
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -44,7 +44,7 @@ api.interceptors.response.use(
 
       try {
 
-        const refreshToken = localStorage.getItem("refresh_token");
+        const refreshToken = localStorage.getItem("refresh");
 
         const response = await axios.post(
           "http://127.0.0.1:8000/api/token/refresh/",
@@ -56,7 +56,7 @@ api.interceptors.response.use(
         const newAccessToken = response.data.access;
 
         localStorage.setItem(
-          "access_token",
+          "access",
           newAccessToken
         );
 
@@ -67,8 +67,8 @@ api.interceptors.response.use(
 
       } catch (refreshError) {
 
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
 
         window.location.href = "/login";
       }

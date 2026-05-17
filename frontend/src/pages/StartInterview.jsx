@@ -98,9 +98,9 @@ const styles = `
 
   .si-domains {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.8rem;
-    margin-bottom: 1.8rem;
+    margin-bottom: 1.2rem;
   }
 
   .si-mode-grid {
@@ -136,6 +136,18 @@ const styles = `
     font-weight: 500;
   }
 
+  .si-custom-input {
+    width: 100%;
+    border: 1.5px solid rgba(100,127,188,0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    margin-bottom: 1.8rem;
+    outline: none;
+    box-sizing: border-box;
+  }
+
   .si-btn {
     width: 100%;
     background: #647FBC;
@@ -153,17 +165,21 @@ const DOMAINS = [
   { value: "software_engineer", label: "Software Engineer" },
   { value: "data_analyst", label: "Data Analyst" },
   { value: "machine_learning", label: "Machine Learning" },
+  { value: "custom", label: "Custom Role" },
 ];
 
 function StartInterview() {
+
   const navigate = useNavigate();
 
   const [interviewMode, setInterviewMode] = useState("domain");
   const [domain, setDomain] = useState("software_engineer");
+  const [customDomain, setCustomDomain] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [difficulty, setDifficulty] = useState("beginner");
 
   const startInterview = async () => {
+
     try {
 
       let uploadedResumeId = null;
@@ -176,6 +192,7 @@ function StartInterview() {
         }
 
         const formData = new FormData();
+
         formData.append("file", resumeFile);
 
         const uploadResponse = await api.post(
@@ -196,7 +213,16 @@ function StartInterview() {
       };
 
       if (interviewMode === "domain") {
-        payload.domain = domain;
+
+        payload.domain =
+          domain === "custom"
+            ? customDomain
+            : domain;
+
+        if (!payload.domain) {
+          alert("Please enter a custom role");
+          return;
+        }
       }
 
       if (interviewMode === "resume") {
@@ -208,9 +234,12 @@ function StartInterview() {
         payload
       );
 
-      navigate(`/interview/${response.data.session_id}`);
+      navigate(
+        `/interview/${response.data.session_id}`
+      );
 
     } catch (error) {
+
       console.log(error);
       alert("Failed to start interview");
     }
@@ -218,10 +247,13 @@ function StartInterview() {
 
   return (
     <div className="si-root">
+
       <style>{styles}</style>
 
       <nav className="si-nav">
-        <span className="si-logo">PrepFlow</span>
+        <span className="si-logo">
+          PrepFlow
+        </span>
       </nav>
 
       <div className="si-body">
@@ -251,18 +283,26 @@ function StartInterview() {
 
             <button
               className={`si-domain-chip ${
-                interviewMode === "domain" ? "active" : ""
+                interviewMode === "domain"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setInterviewMode("domain")}
+              onClick={() =>
+                setInterviewMode("domain")
+              }
             >
               Domain Based
             </button>
 
             <button
               className={`si-domain-chip ${
-                interviewMode === "resume" ? "active" : ""
+                interviewMode === "resume"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setInterviewMode("resume")}
+              onClick={() =>
+                setInterviewMode("resume")
+              }
             >
               Resume Based
             </button>
@@ -278,18 +318,42 @@ function StartInterview() {
               </label>
 
               <div className="si-domains">
+
                 {DOMAINS.map((d) => (
+
                   <button
                     key={d.value}
                     className={`si-domain-chip ${
-                      domain === d.value ? "active" : ""
+                      domain === d.value
+                        ? "active"
+                        : ""
                     }`}
-                    onClick={() => setDomain(d.value)}
+                    onClick={() =>
+                      setDomain(d.value)
+                    }
                   >
                     {d.label}
                   </button>
+
                 ))}
+
               </div>
+
+              {domain === "custom" && (
+
+                <input
+                  type="text"
+                  placeholder="e.g. Full Stack Developer"
+                  className="si-custom-input"
+                  value={customDomain}
+                  onChange={(e) =>
+                    setCustomDomain(
+                      e.target.value
+                    )
+                  }
+                />
+
+              )}
             </>
           )}
 
@@ -304,7 +368,9 @@ function StartInterview() {
                 accept=".pdf"
                 className="si-select"
                 onChange={(e) =>
-                  setResumeFile(e.target.files[0])
+                  setResumeFile(
+                    e.target.files[0]
+                  )
                 }
               />
             </>
@@ -318,27 +384,39 @@ function StartInterview() {
 
             <button
               className={`si-domain-chip ${
-                difficulty === "beginner" ? "active" : ""
+                difficulty === "beginner"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setDifficulty("beginner")}
+              onClick={() =>
+                setDifficulty("beginner")
+              }
             >
               Beginner
             </button>
 
             <button
               className={`si-domain-chip ${
-                difficulty === "intermediate" ? "active" : ""
+                difficulty === "intermediate"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setDifficulty("intermediate")}
+              onClick={() =>
+                setDifficulty("intermediate")
+              }
             >
               Intermediate
             </button>
 
             <button
               className={`si-domain-chip ${
-                difficulty === "advanced" ? "active" : ""
+                difficulty === "advanced"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setDifficulty("advanced")}
+              onClick={() =>
+                setDifficulty("advanced")
+              }
             >
               Advanced
             </button>
