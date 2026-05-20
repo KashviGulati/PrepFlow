@@ -3,162 +3,255 @@ import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
-  .si-root {
-    min-height: 100vh;
-    background: #FAFDD6;
-    font-family: 'DM Sans', sans-serif;
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#0B0B0C;
+}
+
+.si-root{
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+  font-family:'Inter', sans-serif;
+  color:#F5F1EA;
+  background:
+    linear-gradient(135deg,#16181C 0%, #1D2025 45%, #181A1F 100%);
+}
+
+/* animated background glow */
+
+.si-root::before,
+.si-root::after{
+  content:'';
+  position:absolute;
+  width:700px;
+  height:700px;
+  border-radius:50%;
+  filter:blur(120px);
+  opacity:0.22;
+  z-index:0;
+  animation:floatBlob 18s ease-in-out infinite;
+}
+
+.si-root::before{
+  background:#D4A86A;
+  top:-250px;
+  right:-150px;
+}
+
+.si-root::after{
+  background:#5B7CFA;
+  bottom:-300px;
+  left:-200px;
+  animation-delay:6s;
+}
+
+@keyframes floatBlob{
+
+  0%{
+    transform:translate(0,0) scale(1);
   }
 
-  .si-nav {
-    background: #647FBC;
-    padding: 0 3rem;
-    height: 64px;
-    display: flex;
-    align-items: center;
+  25%{
+    transform:translate(-40px,40px) scale(1.08);
   }
 
-  .si-logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    color: #FAFDD6;
+  50%{
+    transform:translate(30px,-20px) scale(0.95);
   }
 
-  .si-body {
-    max-width: 580px;
-    margin: 0 auto;
-    padding: 4rem 2rem;
+  75%{
+    transform:translate(-20px,-40px) scale(1.04);
   }
 
-  .si-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: #647FBC;
-    cursor: pointer;
-    margin-bottom: 2.5rem;
-    font-weight: 500;
-    border: none;
-    background: none;
-    padding: 0;
+  100%{
+    transform:translate(0,0) scale(1);
   }
 
-  .si-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 2.4rem;
-    color: #2e3a5c;
-    margin: 0 0 0.4rem 0;
+}
+
+.si-nav,
+.si-body{
+  position:relative;
+  z-index:2;
+}
+
+.si-nav{
+  height:80px;
+  padding:0 4rem;
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid rgba(200,155,94,0.12);
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(12px);
+}
+
+.si-logo{
+  font-family:'Cormorant Garamond', serif;
+  font-size:2rem;
+  color:#E8D4B0;
+  letter-spacing:0.08em;
+}
+
+.si-body{
+  max-width:720px;
+  margin:auto;
+  padding:3rem 1.5rem 5rem;
+}
+
+.si-back{
+  background:none;
+  border:none;
+  color:#C89B5E;
+  cursor:pointer;
+  margin-bottom:2rem;
+  font-size:0.95rem;
+}
+
+.si-title{
+  font-family:'Cormorant Garamond', serif;
+  font-size:4.5rem;
+  line-height:0.95;
+  margin:0;
+  color:#F5F1EA;
+}
+
+.si-sub{
+  margin-top:1rem;
+  color:#9D968C;
+  line-height:1.8;
+  margin-bottom:2.5rem;
+}
+
+.si-card{
+  background:rgba(18,18,20,0.88);
+  border:1px solid rgba(200,155,94,0.14);
+  border-radius:28px;
+  padding:2.5rem;
+  backdrop-filter:blur(12px);
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+
+.si-label{
+  display:block;
+  margin-bottom:1rem;
+  color:#C89B5E;
+  font-size:0.78rem;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+}
+
+.si-mode-grid,
+.si-domains,
+.si-difficulty-grid{
+  display:grid;
+  gap:1rem;
+  margin-bottom:2rem;
+}
+
+.si-mode-grid{
+  grid-template-columns:1fr 1fr;
+}
+
+.si-domains{
+  grid-template-columns:1fr 1fr;
+}
+
+.si-difficulty-grid{
+  grid-template-columns:1fr 1fr 1fr;
+}
+
+.si-domain-chip{
+  border:none;
+  background:#121214;
+  border:1px solid rgba(200,155,94,0.14);
+  color:#D6CEC2;
+  padding:14px;
+  border-radius:18px;
+  cursor:pointer;
+  transition:all .25s ease;
+  font-size:0.92rem;
+}
+
+.si-domain-chip:hover{
+  border-color:rgba(200,155,94,0.4);
+  transform:translateY(-2px);
+}
+
+.si-domain-chip.active{
+  background:linear-gradient(135deg,#C89B5E,#E0B97B);
+  color:#111;
+  font-weight:600;
+}
+
+.si-custom-input,
+.si-select{
+  width:100%;
+  background:#111214;
+  border:1px solid rgba(200,155,94,0.15);
+  color:#F5F1EA;
+  padding:14px 16px;
+  border-radius:16px;
+  outline:none;
+  margin-bottom:2rem;
+  font-size:0.95rem;
+}
+
+.si-custom-input:focus,
+.si-select:focus{
+  border-color:#C89B5E;
+  box-shadow:0 0 0 4px rgba(200,155,94,0.08);
+}
+
+.si-divider{
+  height:1px;
+  background:rgba(200,155,94,0.08);
+  margin-bottom:2rem;
+}
+
+.si-btn{
+  width:100%;
+  border:none;
+  padding:16px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#C89B5E,#E0B97B);
+  color:#111;
+  font-size:1rem;
+  font-weight:600;
+  cursor:pointer;
+  margin-top:1rem;
+  transition:all .25s ease;
+}
+
+.si-btn:hover{
+  transform:translateY(-2px);
+}
+
+@media(max-width:768px){
+
+  .si-title{
+    font-size:3rem;
   }
 
-  .si-sub {
-    color: #8a95ad;
-    font-size: 0.9rem;
-    font-weight: 300;
-    margin: 0 0 2.5rem 0;
+  .si-mode-grid,
+  .si-domains,
+  .si-difficulty-grid{
+    grid-template-columns:1fr;
   }
 
-  .si-card {
-    background: #fff;
-    border: 1px solid rgba(100,127,188,0.15);
-    border-radius: 20px;
-    padding: 2.5rem;
+  .si-nav{
+    padding:0 1.5rem;
   }
 
-  .si-label {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: #6b7a9a;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    display: block;
-    margin-bottom: 0.6rem;
-  }
-
-  .si-select {
-    width: 100%;
-    border: 1.5px solid rgba(100,127,188,0.25);
-    border-radius: 10px;
-    padding: 11px 14px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    color: #2e3a5c;
-    background: #fff;
-    outline: none;
-    margin-bottom: 1.8rem;
-    cursor: pointer;
-  }
-
-  .si-divider {
-    height: 1px;
-    background: rgba(100,127,188,0.1);
-    margin-bottom: 2rem;
-  }
-
-  .si-domains {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.8rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .si-mode-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.8rem;
-    margin-bottom: 2rem;
-  }
-
-  .si-difficulty-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.8rem;
-    margin-bottom: 2rem;
-  }
-
-  .si-domain-chip {
-    border: 1.5px solid rgba(100,127,188,0.2);
-    border-radius: 10px;
-    padding: 10px 8px;
-    text-align: center;
-    cursor: pointer;
-    font-size: 0.82rem;
-    color: #6b7a9a;
-    transition: all 0.15s;
-    background: #fff;
-  }
-
-  .si-domain-chip.active {
-    background: rgba(100,127,188,0.1);
-    border-color: #647FBC;
-    color: #647FBC;
-    font-weight: 500;
-  }
-
-  .si-custom-input {
-    width: 100%;
-    border: 1.5px solid rgba(100,127,188,0.25);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    margin-bottom: 1.8rem;
-    outline: none;
-    box-sizing: border-box;
-  }
-
-  .si-btn {
-    width: 100%;
-    background: #647FBC;
-    color: #FAFDD6;
-    border: none;
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-  }
+}
 `;
 
 const DOMAINS = [
@@ -266,11 +359,11 @@ function StartInterview() {
         </button>
 
         <h1 className="si-title">
-          New Interview
+          Start Interview
         </h1>
 
         <p className="si-sub">
-          Configure your session and jump right in.
+          Choose your interview setup and begin practicing.
         </p>
 
         <div className="si-card">
@@ -427,7 +520,7 @@ function StartInterview() {
             onClick={startInterview}
             className="si-btn"
           >
-            Start interview →
+            Start Interview
           </button>
 
         </div>
