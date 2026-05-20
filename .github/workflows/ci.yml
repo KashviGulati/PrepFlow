@@ -1,0 +1,99 @@
+name: PrepFlow CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+
+  backend:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+
+      - name: Install Backend Dependencies
+        run: |
+          pip install -r requirements.txt
+
+
+      - name: Run Django Checks
+        env:
+          SECRET_KEY: testsecret
+          DEBUG: True
+          GROQ_API_KEY: testkey
+
+          DB_NAME: testdb
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+
+        run: |
+          python manage.py check
+
+
+  frontend:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+
+      - name: Build Frontend
+        run: npm run build
+
+
+  docker:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+
+      - name: Build Backend Docker Image
+        run: docker build -t prepflow-backend .
+
+
+      - name: Build Frontend Docker Image
+        run: docker build -t prepflow-frontend ./frontend
