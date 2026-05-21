@@ -3,121 +3,361 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-  .sum-root {
-    min-height: 100vh;
-    background: #FAFDD6;
-    font-family: 'DM Sans', sans-serif;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .sum-nav {
-    background: #647FBC;
-    padding: 0 3rem;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+body { background: #0E0F14; }
 
-  .sum-logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    color: #FAFDD6;
-  }
+.sum-root {
+  min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  color: #F0EDE8;
+  background: #0E0F14;
+  position: relative;
+  overflow-x: hidden;
+}
 
-  .sum-nav-links {
-    display: flex;
-    gap: 0.8rem;
-  }
+/* ── Background ── */
+.sum-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 75% 5%,  rgba(100, 90, 200, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 15% 85%, rgba(210, 160, 90, 0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 35% at 85% 70%, rgba(60, 160, 180, 0.09) 0%, transparent 50%),
+    linear-gradient(160deg, #0E0F14 0%, #12141C 50%, #0F1018 100%);
+}
+.sum-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 180px;
+  opacity: 0.5;
+  pointer-events: none;
+}
 
-  .sum-nav-btn {
-    background: rgba(250,253,214,0.12);
-    border: 1.5px solid rgba(250,253,214,0.35);
-    color: #FAFDD6;
-    padding: 7px 18px;
-    border-radius: 100px;
-    font-size: 0.85rem;
-    cursor: pointer;
-  }
+/* ── Nav ── */
+.sum-nav {
+  position: relative;
+  z-index: 10;
+  height: 72px;
+  padding: 0 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(14, 15, 20, 0.65);
+  backdrop-filter: blur(20px);
+}
 
-  .sum-body {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 3.5rem 2rem 5rem;
-  }
+.sum-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem;
+  color: #E8D4B0;
+  letter-spacing: 0.06em;
+}
 
-  .sum-header {
-    margin-bottom: 2.5rem;
-  }
+.sum-nav-btn {
+  background: rgba(200,155,94,0.08);
+  border: 1px solid rgba(200,155,94,0.22);
+  color: #C89B5E;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+.sum-nav-btn:hover {
+  background: rgba(200,155,94,0.14);
+  border-color: rgba(200,155,94,0.4);
+  color: #E0B97B;
+}
 
-  .sum-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 2.4rem;
-    color: #2e3a5c;
-  }
+/* ── Body ── */
+.sum-body {
+  position: relative;
+  z-index: 2;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 6rem;
+}
 
-  .sum-meta {
-    color: #8a95ad;
-    font-size: 0.88rem;
-  }
+/* ── Header ── */
+.sum-header {
+  margin-bottom: 2.8rem;
+  animation: fadeUp 0.5s ease both;
+}
 
-  .sum-overview {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
+.sum-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #C89B5E;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sum-eyebrow::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 40px;
+  background: linear-gradient(to right, #C89B5E, transparent);
+}
 
-  .sum-overview-card {
-    background: #647FBC;
-    border-radius: 16px;
-    padding: 1.6rem;
-    color: white;
-  }
+.sum-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.4rem;
+  line-height: 1.05;
+  color: #F5F1EA;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.sum-title em {
+  font-style: italic;
+  color: #C89B5E;
+}
 
-  .sum-report {
-    background: white;
-    border-radius: 16px;
-    padding: 1.8rem;
-    border: 1px solid rgba(100,127,188,0.15);
-    line-height: 1.6;
-    font-size: 0.92rem;
-    color: #2e3a5c;
-    white-space: pre-wrap;
-  }
+.sum-meta {
+  margin-top: 0.7rem;
+  color: #5A5670;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sum-meta-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #3A384A;
+}
 
-  .sum-actions {
-    display: flex;
-    gap: 0.8rem;
-    margin-top: 2rem;
-  }
+/* ── Overview cards ── */
+.sum-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 2rem;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
 
-  .sum-btn-primary {
-    flex: 1;
-    background: #647FBC;
-    color: #FAFDD6;
-    border: none;
-    border-radius: 10px;
-    padding: 13px;
-    cursor: pointer;
-  }
+.sum-overview-card {
+  background: rgba(18, 18, 28, 0.75);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 1.6rem 1.8rem;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.sum-overview-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(200,155,94,0.2), transparent);
+}
+.sum-ov-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #5A5670;
+  margin-bottom: 0.5rem;
+}
+.sum-ov-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #E8D4B0;
+  font-weight: 600;
+}
+.sum-ov-icon {
+  position: absolute;
+  top: 1.4rem; right: 1.4rem;
+  font-size: 1.4rem;
+  opacity: 0.25;
+}
 
-  .sum-btn-secondary {
-    flex: 1;
-    border: 1.5px solid rgba(100,127,188,0.3);
-    color: #647FBC;
-    border-radius: 10px;
-    padding: 13px;
-    cursor: pointer;
-  }
+/* ── Score card ── */
+.sum-score-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 2rem;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
 
-  .sum-loading {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.sum-score-card {
+  background: rgba(18, 18, 28, 0.75);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 1.2rem 1.4rem;
+  backdrop-filter: blur(16px);
+  text-align: center;
+}
+.sum-score-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #4A4660;
+  margin-bottom: 0.4rem;
+}
+.sum-score-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-family: 'Playfair Display', serif;
+}
+.sum-score-value.good  { color: #8ECEBB; }
+.sum-score-value.mid   { color: #E8C88A; }
+.sum-score-value.low   { color: #E8988A; }
+
+/* ── Report section ── */
+.sum-report-wrap {
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+.sum-section-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #8C879E;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sum-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+}
+
+.sum-report-card {
+  background: rgba(18, 18, 28, 0.8);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 24px;
+  padding: 2.2rem 2.4rem;
+  backdrop-filter: blur(24px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 20px 50px rgba(0,0,0,0.45);
+  line-height: 1.8;
+  font-size: 0.93rem;
+  color: #B8B2C8;
+}
+
+/* ── Clean the markdown bold/stars from AI output ── */
+.sum-report-card p {
+  margin-bottom: 1rem;
+  color: #B8B2C8;
+}
+.sum-report-card p:last-child { margin-bottom: 0; }
+
+.sum-report-card .report-heading {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: #E8D4B0;
+  font-weight: 600;
+  margin: 1.4rem 0 0.5rem;
+}
+.sum-report-card .report-heading:first-child { margin-top: 0; }
+
+.sum-report-card .report-highlight {
+  color: #C89B5E;
+  font-weight: 500;
+}
+
+.sum-report-card .report-good { color: #8ECEBB; font-weight: 500; }
+.sum-report-card .report-warn { color: #E8C88A; font-weight: 500; }
+
+/* ── Actions ── */
+.sum-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 2rem;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+.sum-btn {
+  border: none;
+  padding: 15px 18px;
+  border-radius: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+}
+
+.sum-btn-primary {
+  background: linear-gradient(135deg, #C89B5E, #E0B97B);
+  color: #1A1408;
+  box-shadow: 0 4px 20px rgba(200,155,94,0.25);
+}
+.sum-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(200,155,94,0.38);
+}
+
+.sum-btn-secondary {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #8C879E;
+}
+.sum-btn-secondary:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+  color: #C0BAD0;
+  transform: translateY(-2px);
+}
+
+/* ── Loading ── */
+.sum-loading {
+  min-height: 100vh;
+  background: #0E0F14;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  font-family: 'DM Sans', sans-serif;
+}
+.sum-spinner {
+  width: 36px; height: 36px;
+  border: 2px solid rgba(200,155,94,0.15);
+  border-top-color: #C89B5E;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.sum-loading-text { color: #5A5670; font-size: 0.9rem; letter-spacing: 0.08em; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .sum-nav { padding: 0 1.5rem; }
+  .sum-body { padding: 2.5rem 1.2rem 5rem; }
+  .sum-title { font-size: 2.4rem; }
+  .sum-overview, .sum-score-row, .sum-actions { grid-template-columns: 1fr; }
+  .sum-report-card { padding: 1.6rem 1.5rem; border-radius: 20px; }
+}
 `;
 
 const DOMAIN_LABELS = {
@@ -126,14 +366,48 @@ const DOMAIN_LABELS = {
   machine_learning: "Machine Learning",
 };
 
+/* Strip markdown bold (**text**) and return plain text paragraphs */
+function cleanMarkdown(text) {
+  if (!text) return [];
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")   // remove **bold**
+    .replace(/\*(.*?)\*/g, "$1")        // remove *italic*
+    .replace(/#+\s*/g, "")              // remove headings hashes
+    .split(/\n{2,}/)                    // split on double newlines
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/* Heuristic: if paragraph starts with a known heading keyword, treat as heading */
+const HEADING_PATTERNS = [
+  /^(overall|summary|strengths?|weaknesses?|areas? (for|to) improve|technical|communication|vocabulary|clarity|feedback|performance|score|recommendation)/i,
+];
+
+function isHeading(paragraph) {
+  return HEADING_PATTERNS.some((re) => re.test(paragraph)) && paragraph.length < 80;
+}
+
+function ReportContent({ text }) {
+  const paragraphs = cleanMarkdown(text);
+  return (
+    <div className="sum-report-card">
+      {paragraphs.map((p, i) =>
+        isHeading(p) ? (
+          <div key={i} className="report-heading">{p}</div>
+        ) : (
+          <p key={i}>{p}</p>
+        )
+      )}
+    </div>
+  );
+}
+
 function Summary() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
 
-  useEffect(() => {
-    fetchSummary();
-  }, []);
+  useEffect(() => { fetchSummary(); }, []);
 
   const fetchSummary = async () => {
     try {
@@ -148,62 +422,72 @@ function Summary() {
     return (
       <div className="sum-loading">
         <style>{styles}</style>
-        Generating your interview report...
+        <div className="sum-spinner" />
+        <p className="sum-loading-text">Generating your interview report...</p>
       </div>
     );
   }
 
+  const domainLabel = DOMAIN_LABELS[summary.domain] || summary.domain;
+
   return (
     <div className="sum-root">
       <style>{styles}</style>
+      <div className="sum-bg" />
 
+      {/* Nav */}
       <nav className="sum-nav">
         <span className="sum-logo">PrepFlow</span>
-        <div className="sum-nav-links">
-          <button className="sum-nav-btn" onClick={() => navigate("/start")}>
-            New session
-          </button>
-        </div>
+        <button className="sum-nav-btn" onClick={() => navigate("/start")}>
+          New Session
+        </button>
       </nav>
 
       <div className="sum-body">
+
+        {/* Header */}
         <div className="sum-header">
+          <div className="sum-eyebrow">Session Complete</div>
           <h1 className="sum-title">
-            {DOMAIN_LABELS[summary.domain] || summary.domain}
+            Your <em>report</em>
           </h1>
           <p className="sum-meta">
+            {domainLabel}
+            <span className="sum-meta-dot" />
             {summary.questions_answered} question{summary.questions_answered !== 1 ? "s" : ""} answered
           </p>
         </div>
 
+        {/* Overview cards */}
         <div className="sum-overview">
           <div className="sum-overview-card">
-            <div>Domain</div>
-            <strong>{DOMAIN_LABELS[summary.domain] || summary.domain}</strong>
+            <span className="sum-ov-icon">🎯</span>
+            <div className="sum-ov-label">Domain</div>
+            <div className="sum-ov-value">{domainLabel}</div>
           </div>
-
           <div className="sum-overview-card">
-            <div>Questions</div>
-            <strong>{summary.questions_answered}</strong>
+            <span className="sum-ov-icon">💬</span>
+            <div className="sum-ov-label">Questions</div>
+            <div className="sum-ov-value">{summary.questions_answered}</div>
           </div>
         </div>
 
-        {/* 🔥 NEW: AI REPORT */}
-        <h2 style={{ marginBottom: "1rem" }}>Interview Report</h2>
-
-        <div className="sum-report">
-          {summary.final_feedback || "No feedback available."}
+        {/* AI Report */}
+        <div className="sum-report-wrap">
+          <div className="sum-section-label">Interview Report</div>
+          <ReportContent text={summary.final_feedback || "No feedback available."} />
         </div>
 
+        {/* Actions */}
         <div className="sum-actions">
-          <button className="sum-btn-primary" onClick={() => navigate("/start")}>
-            Start new session →
+          <button className="sum-btn sum-btn-primary" onClick={() => navigate("/start")}>
+            Start New Session →
           </button>
-
-          <button className="sum-btn-secondary" onClick={() => navigate("/history")}>
-            View history
+          <button className="sum-btn sum-btn-secondary" onClick={() => navigate("/history")}>
+            View History
           </button>
         </div>
+
       </div>
     </div>
   );
