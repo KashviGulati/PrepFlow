@@ -455,13 +455,19 @@ function InterviewRoom() {
   useEffect(() => { fetchCurrentQuestion(); }, []);
 
   useEffect(() => {
-    if (questionAudio) {
-      const audio = new Audio(
-  `${import.meta.env.VITE_API_BASE_URL}${questionAudio}`
-);
-      audio.play();
-    }
-  }, [questionAudio]);
+  if (questionAudio) {
+
+    const cleanPath = questionAudio.startsWith("/")
+      ? questionAudio
+      : `/${questionAudio}`;
+
+    const audio = new Audio(
+      `${import.meta.env.VITE_API_BASE_URL}${cleanPath}`
+    );
+    audio.play();
+
+  }
+}, [questionAudio]);
 
   const fetchCurrentQuestion = async () => {
     try {
