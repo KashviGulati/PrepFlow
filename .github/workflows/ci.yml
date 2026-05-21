@@ -104,7 +104,3 @@ jobs:
       - name: Deploy Backend
         run: |
           curl -X POST ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
-
-      - name: Deploy Frontend
-        run: |
-          curl -X POST ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
