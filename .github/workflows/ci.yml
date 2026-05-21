@@ -39,11 +39,7 @@ jobs:
           DEBUG: True
           GROQ_API_KEY: testkey
 
-          DB_NAME: testdb
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
+          DATABASE_URL: sqlite:///db.sqlite3
 
         run: |
           python manage.py check
