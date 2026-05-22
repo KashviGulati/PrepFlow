@@ -456,7 +456,7 @@ function InterviewRoom() {
 
   useEffect(() => {
   if (questionAudio) {
-
+    console.log(questionAudio);
     const cleanPath = questionAudio.startsWith("/")
       ? questionAudio
       : `/${questionAudio}`;

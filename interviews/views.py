@@ -179,9 +179,15 @@ def current_question(request, session_id):
             "error": "No question found yet"
         }, status=404)
 
+    
+    audio_path = generate_question_audio(
+    question.question_text
+)
+
     return Response({
         "id": question.id,
-        "question_text": question.question_text
+        "question_text": question.question_text,
+        "audio_path": audio_path
     })
 
 
