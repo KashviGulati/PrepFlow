@@ -2,7 +2,6 @@ import speech_recognition as sr
 from pydub import AudioSegment
 import os
 
-
 def transcribe_audio(audio_path):
 
     print("\n=== STARTING TRANSCRIPTION ===")
