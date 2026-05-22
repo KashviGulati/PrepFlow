@@ -5,10 +5,18 @@ import os
 
 def transcribe_audio(audio_path):
 
+    print("\n=== STARTING TRANSCRIPTION ===")
+
     wav_path = audio_path.replace(".webm", ".wav")
 
+    print("Input file:", audio_path)
+
     audio = AudioSegment.from_file(audio_path)
+
     audio.export(wav_path, format="wav")
+
+    print("Converted WAV:", wav_path)
+    print("WAV Size:", os.path.getsize(wav_path), "bytes")
 
     recognizer = sr.Recognizer()
 
@@ -20,11 +28,17 @@ def transcribe_audio(audio_path):
 
         text = recognizer.recognize_google(audio_data)
 
-    except Exception:
+        print("TRANSCRIPT:", repr(text))
+
+    except Exception as e:
+
+        print("TRANSCRIPTION ERROR:", str(e))
 
         text = ""
 
     if os.path.exists(wav_path):
         os.remove(wav_path)
+
+    print("=== TRANSCRIPTION COMPLETE ===\n")
 
     return text

@@ -326,6 +326,9 @@ def submit_audio_answer(request):
         temp_path
     )
 
+    print("TRANSCRIPT LENGTH:", len(transcribed_text))
+    print("TRANSCRIPT:", repr(transcribed_text))
+
     print(transcribed_text)
 
     result = run_interview_pipeline(
