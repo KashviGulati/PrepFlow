@@ -464,7 +464,9 @@ function InterviewRoom() {
     const audio = new Audio(
       `${import.meta.env.VITE_API_BASE_URL}${cleanPath}`
     );
-    audio.play();
+    audio.play().catch((err) => {
+      console.log("Audio play blocked:", err);
+    });
 
   }
 }, [questionAudio]);
@@ -473,6 +475,7 @@ function InterviewRoom() {
     try {
       const response = await api.get(`/interview/current-question/${sessionId}/`);
       setQuestion(response.data);
+      setQuestionAudio(response.data.audio_path);
     } catch (error) {
       console.log(error);
       alert("Failed to load question");
